@@ -3,9 +3,14 @@
 *.out
 *.so
 
+/bin/
+/obj/
+
 /log.txt
 /compile_commands.json
 
 /.cache/
+
+
 
 
