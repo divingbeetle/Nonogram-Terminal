@@ -1,0 +1,11 @@
+*.a
+*.o
+*.out
+*.so
+
+/log.txt
+/compile_commands.json
+
+/.cache/
+
+
