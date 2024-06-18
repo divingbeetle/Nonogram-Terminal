@@ -3,10 +3,10 @@ TARGET = main
 DEBUG ?= 1
 
 # Direcotries
-SRC_DIR = src 
-INC_DIR = include 
-OBJ_DIR = obj 
-BIN_DIR = bin 
+SRC_DIR = src
+INC_DIR = include
+OBJ_DIR = obj
+BIN_DIR = bin
 
 # Compiler
 CC = gcc 
@@ -31,7 +31,7 @@ directories:
 $(BIN_DIR)/$(TARGET): $(OBJ)
 	$(CC) $^ -o $@ $(LDFLAGS) 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) -c $< -o $@ $(CFLAGS)
+	$(CC) $(CFLAGS) -c $< -o $@ 
 
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)
