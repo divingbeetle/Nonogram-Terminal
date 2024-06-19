@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <assert.h>
+
 /* ---- LOGGING ---- */
 
 enum log_level
@@ -23,6 +25,25 @@ enum log_level
         LOGF(LOG_FATAL, fmt, __VA_ARGS__);                                     \
         fprintf(stderr, fmt, __VA_ARGS__);                                     \
         exit(1);                                                               \
+    } while (0)
+
+#define ALLOC_CHECK_RETURN(ptr, ret)                                           \
+    do                                                                         \
+    {                                                                          \
+        if ((ptr) == NULL)                                                     \
+        {                                                                      \
+            LOG(LOG_ERROR, "Memory allocation failed");                        \
+            return (ret);                                                      \
+        }                                                                      \
+    } while (0)
+
+#define ALLOC_CHECK_EXIT(ptr)                                                  \
+    do                                                                         \
+    {                                                                          \
+        if ((ptr) == NULL)                                                     \
+        {                                                                      \
+            LOG_AND_EXIT("%s", "Memory allocation failed");                    \
+        }                                                                      \
     } while (0)
 
 void log_init(void);
