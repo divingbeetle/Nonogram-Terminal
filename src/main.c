@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include "game_control.h"
+#include "puzzle.h"
 #include "tui.h"
 #include "utils.h"
 
@@ -42,38 +44,50 @@ int main(void)
 
     struct menu_set *mset = menu_set_create(&params);
     ALLOC_CHECK_EXIT(mset);
+
     struct menu_config config = menu_config_default;
     menu_set_configure(mset, config);
 
     bool in_menu = TRUE;
+    struct puzzle *pz = NULL;
     while (in_menu)
     {
         int menu_choice = menu_set_get_user_choice(mset);
         switch (menu_choice)
         {
             case MAIN_MENU_NEW_GAME:
-                display_notification("Unimplemented");
+                pz = get_test_puzzle();
+                play(pz);
+                clear();
+                refresh();
                 break;
+
             case MAIN_MENU_CONTINUE:
                 display_notification("Unimplemented");
                 break;
+
             case MAIN_MENU_HOW_TO_PLAY:
                 display_notification("Unimplemented");
                 break;
+
             case MAIN_MENU_SETTINGS:
                 display_notification("Unimplemented");
                 break;
+
             case MAIN_MENU_EXIT:
                 in_menu = FALSE;
                 break;
+
             case MAIN_MENU_DEBUG:
                 display_notification("Unimplemented");
                 break;
+
             case MENU_NOT_SELECTED:
                 LOG(LOG_INFO, "Menu not selected");
                 display_notification("No choice selected");
                 in_menu = FALSE;
                 break;
+
             default:
                 LOGF(LOG_ERROR, "Invalid choice: %d", menu_choice);
                 display_notification("Invalid choice");

@@ -1,0 +1,8 @@
+{
+    "format_version": "0.1.0",
+    "title": "Test set of valid puzzles",
+    "description": "Collection of puzzles that should run without errors",
+    "num_puzzles": 0,
+    "puzzles": [
+    ]
+}

@@ -16,6 +16,13 @@ const struct menu_config menu_config_default =
 void end_screen(void);
 ITEM **menu_items_create(const struct menu_param *params);
 
+bool enough_screen_size(struct pos required_size)
+{
+    struct pos screen_size;
+    getmaxyx(stdscr, screen_size.y, screen_size.x);
+    return (screen_size.y >= required_size.y && screen_size.x >= required_size.x);
+}
+
 /* Public */
 
 void init_screen(void)
