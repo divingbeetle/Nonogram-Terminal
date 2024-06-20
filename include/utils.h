@@ -6,6 +6,9 @@
 
 /* ---- MISC ---- */ 
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 /**
  * Malloc for 2d arrays with contigous memory.
  *  - Allows array notation for access
