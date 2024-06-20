@@ -2,6 +2,19 @@
 #define UTILS_H
 
 #include <assert.h>
+#include <stdlib.h>
+
+/* ---- MISC ---- */ 
+
+/**
+ * Malloc for 2d arrays with contigous memory.
+ *  - Allows array notation for access
+ * @param type_size Your `sizeof(type)`
+ * @retval NULL if allocation failed
+ */
+void **alloc2d(size_t n_rows, size_t n_cols, size_t type_size);
+void free2d(void **arr, size_t n_rows);
+
 
 /* ---- LOGGING ---- */
 
