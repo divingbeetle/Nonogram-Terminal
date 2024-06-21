@@ -14,6 +14,7 @@ struct game_ui
 {
     WINDOW *win;
     WINDOW *board;
+    struct menu_set *cmd_menu;
     const struct puzzle *puzzle;
 };
 

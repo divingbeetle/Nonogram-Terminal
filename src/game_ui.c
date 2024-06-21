@@ -1,4 +1,5 @@
 #include "game_ui.h"
+#include "game_control.h"
 #include "utils.h"
 #include <curses.h>
 
@@ -54,6 +55,7 @@ void game_ui_destroy(struct game_ui *ui)
     assert(ui->win != NULL);
     assert(ui->board != NULL);
 
+    menu_set_destroy(ui->cmd_menu);
     delwin(ui->board);
     delwin(ui->win);
     free(ui);
@@ -126,6 +128,7 @@ int game_ui_set_windows(struct game_ui *ui)
 
     int win_padding = UI_WIN_PADDING;
 
+
     // @TODO: adjust if other windows/elements are needed
     int left_space   = 0;
     int top_space    = 0;
@@ -137,6 +140,25 @@ int game_ui_set_windows(struct game_ui *ui)
     int row_clues_width  = get_clueline_render_size(ui->puzzle, AXIS_ROW);
     int col_clues_height = get_clueline_render_size(ui->puzzle, AXIS_COL);
 
+    struct menu_param params =
+    {
+        .title = "COMMAND MODE",
+        .size = {.x = 0, .y = 0},
+        .start = {.x = win_padding + left_space + row_clues_width + board_width,
+                .y = win_padding + top_space + col_clues_height + 1},
+        .n_choices = CMD_N,
+        .choices = command_mode_choices,
+        .descriptions = command_mode_desc,
+    };
+
+    struct menu_config config = menu_config_default;
+
+    ui->cmd_menu = menu_set_create(&params);
+    ALLOC_CHECK_EXIT(ui->cmd_menu);
+    menu_set_configure(ui->cmd_menu, config);
+
+    right_space = getmaxx(ui->cmd_menu->win);
+
     struct pos win_size = 
     {
         .y = win_padding * 2 + top_space + col_clues_height + board_height
@@ -144,6 +166,7 @@ int game_ui_set_windows(struct game_ui *ui)
         .x = win_padding * 2 + left_space + row_clues_width + board_width
              + right_space
     };
+
 
     ui->win = newwin(win_size.y, win_size.x, 0, 0);
     ALLOC_CHECK_EXIT(ui->win);

@@ -23,6 +23,29 @@ struct game_controller
     struct cell selection_pivot; // For visual mode selection area
 };
 
+char *command_mode_choices[CMD_N] =
+{
+    [CMD_AUTO_XMARK]        = "Auto XMark",
+    [CMD_DELETE_TEMP_MARKS] = "Delete Temp Marks",
+    [CMD_CLEAR]             = "Clear",
+    [CMD_CAPTURE]           = "Capture",
+    [CMD_RESTORE_CAPTURE]   = "Restore Capture",
+    [CMD_SAVE]              = "Save",
+    [CMD_QUIT]              = "Quit",
+};
+
+char *command_mode_desc[CMD_N] = 
+{
+    [CMD_AUTO_XMARK]        = "X mark all cells on correct axis",
+    [CMD_DELETE_TEMP_MARKS] = "Delete all temporary marks",
+    [CMD_CLEAR]             = "Clear the board",
+    [CMD_CAPTURE]           = "Capture current state",
+    [CMD_RESTORE_CAPTURE]   = "Restore captured state",
+    [CMD_SAVE]              = "Save the current state",
+    [CMD_QUIT]              = "Quit the game",
+};
+
+
 /* Function prototypes */
 
 struct game_controller *game_controller_create(const struct puzzle *pz);
@@ -42,6 +65,8 @@ void clamp_cursor(struct game_controller *game);
 
 struct cell selection_start(struct game_controller *game);
 struct cell selection_end(struct game_controller *game);
+
+int open_command_mode(struct game_controller *game);
 
 /* Public */
 
@@ -264,9 +289,6 @@ bool handle_mode_switch(struct game_controller *game, int key)
             game->selection_pivot.col = 0;
             game->cursor.col = game->puzzle->n_cols - 1;
             break;
-        case ':':
-            // @TODO: command mode
-            break;
         default:
             return false;
             break;
@@ -292,6 +314,10 @@ int handle_key_input(struct game_controller *game, int key)
     if (handle_mode_switch(game, key))
         return 0;
 
+    if (key == ':')
+    {
+        return open_command_mode(game);
+    }
 
     if (key == KEY_RESIZE)
     {
@@ -344,4 +370,42 @@ struct cell selection_end(struct game_controller *game)
     };
 
     return end;
+}
+
+int open_command_mode(struct game_controller *game)
+{
+    int cmd_choice = menu_set_get_user_choice(game->ui->cmd_menu);
+    wclear(game->ui->cmd_menu->win);
+    wrefresh(game->ui->cmd_menu->win);
+
+    switch (cmd_choice)
+    {
+        case CMD_AUTO_XMARK:
+            auto_xmark(game->state);
+            break;
+        case CMD_DELETE_TEMP_MARKS:
+            delete_temp_marks(game->state);
+            break;
+        case CMD_CLEAR:
+            clear_board(game->state);
+            break;
+        case CMD_CAPTURE:
+            store_capture(game->state);
+            break;
+        case CMD_RESTORE_CAPTURE:
+            restore_capture(game->state);
+            break;
+        case CMD_SAVE:
+            // @TODO: SAVE
+            break;
+        case CMD_QUIT:
+            return EXIT_GAME;
+            break;
+        case MENU_NOT_SELECTED:
+            break;
+        default:
+            LOGF(LOG_WARNING, "Invalid command choice: %d", cmd_choice);
+            break;
+    }
+    return 0;
 }

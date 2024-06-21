@@ -51,9 +51,13 @@ void set_area_if_empty(struct game_state *gs,
                        struct cell start, struct cell end, 
                        enum cell_state new_state);
 
-void delete_temp_marks(struct game_state *gs);
 void switch_case(struct game_state *gs, struct cell start, struct cell end);
 void clear_board(struct game_state *gs);
+
+void auto_xmark(struct game_state *gs);
+void delete_temp_marks(struct game_state *gs);
+void store_capture(struct game_state *gs);
+void restore_capture(struct game_state *gs);
 
 void undo(struct game_state *gs);
 void redo(struct game_state *gs);

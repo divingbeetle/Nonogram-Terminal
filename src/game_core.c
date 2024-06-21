@@ -178,6 +178,80 @@ void clear_board(struct game_state *gs)
     set_area_state(gs, start, end, CELL_EMPTY);
 }
 
+void auto_xmark(struct game_state *gs)
+{
+    int n_modified = 0;
+    struct cell curr;
+
+    for (curr.row = 0; curr.row < gs->puzzle->n_rows; curr.row++)
+    {
+        if (validate_axis(gs, AXIS_ROW, curr.row))
+        {
+            for (curr.col = 0; curr.col < gs->puzzle->n_cols; curr.col++)
+            {
+                if (get_cell_state(gs, curr) == CELL_EMPTY)
+                {
+                    set_cell_state_internal(gs, curr, CELL_XMARKED, &n_modified);
+                }
+            }
+        }
+    }
+
+    for (curr.col = 0; curr.col < gs->puzzle->n_cols; curr.col++)
+    {
+        if (validate_axis(gs, AXIS_COL, curr.col))
+        {
+            for (curr.row = 0; curr.row < gs->puzzle->n_rows; curr.row++)
+            {
+                if (get_cell_state(gs, curr) == CELL_EMPTY)
+                {
+                    set_cell_state_internal(gs, curr, CELL_XMARKED, &n_modified);
+                }
+            }
+        }
+    }
+}
+
+void store_capture(struct game_state *gs)
+{
+    assert(gs != NULL);
+    if (gs->board_capture == NULL)
+    {
+        gs->board_capture = board_state_create(gs->puzzle);
+    }
+
+    for (int i = 0; i < gs->puzzle->n_rows; i++)
+    {
+        for (int j = 0; j < gs->puzzle->n_cols; j++)
+        {
+            gs->board_capture[i][j] = gs->board_state[i][j];
+        }
+    }
+}
+
+void restore_capture(struct game_state *gs)
+{
+    assert(gs != NULL);
+    if (gs->board_capture == NULL)
+    {
+        return;
+    }
+
+    struct cell curr;
+    int n_modified = UNDO_ENTRY_UNMODIFIED;
+
+    for (curr.row = 0; curr.row < gs->puzzle->n_rows; curr.row++)
+    {
+        for (curr.col = 0; curr.col < gs->puzzle->n_cols; curr.col++)
+        {
+            set_cell_state_internal(gs, curr, 
+                                    gs->board_capture[curr.row][curr.col], 
+                                    &n_modified);
+        }
+    }
+
+}
+
 void undo(struct game_state *gs)
 {
     assert(gs != NULL);
