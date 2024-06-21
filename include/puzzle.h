@@ -20,6 +20,11 @@ struct puzzle
     int **col_clues;
 };
 
+struct cell 
+{
+    int row, col;
+};
+
 /**
  * @TODO: Delete this function when the actual puzzle loading is implemented.
  */
@@ -35,5 +40,9 @@ static inline int get_col_clueline_size(const struct puzzle *pz)
     return (pz->n_rows + 1) / 2;
 }
 
+static inline struct cell get_puzzle_size(const struct puzzle *pz)
+{
+    return (struct cell){pz->n_rows, pz->n_cols};
+}
 
 #endif // PUZZLE_H

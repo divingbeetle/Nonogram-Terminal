@@ -48,7 +48,7 @@ int main(void)
     struct menu_config config = menu_config_default;
     menu_set_configure(mset, config);
 
-    bool in_menu = TRUE;
+    bool in_menu = true;
     struct puzzle *pz = NULL;
     while (in_menu)
     {
@@ -75,7 +75,7 @@ int main(void)
                 break;
 
             case MAIN_MENU_EXIT:
-                in_menu = FALSE;
+                in_menu = false;
                 break;
 
             case MAIN_MENU_DEBUG:
@@ -85,13 +85,13 @@ int main(void)
             case MENU_NOT_SELECTED:
                 LOG(LOG_INFO, "Menu not selected");
                 display_notification("No choice selected");
-                in_menu = FALSE;
+                in_menu = false;
                 break;
 
             default:
                 LOGF(LOG_ERROR, "Invalid choice: %d", menu_choice);
                 display_notification("Invalid choice");
-                in_menu = FALSE;
+                in_menu = false;
                 break;
         }
     }

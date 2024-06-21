@@ -8,7 +8,7 @@
 
 const struct menu_config menu_config_default =
 {
-    .rescale = TRUE,
+    .rescale = true,
 };
 
 /* Function Prototypes */
@@ -32,7 +32,7 @@ void init_screen(void)
 
     cbreak();
     noecho();
-    keypad(stdscr, TRUE);
+    keypad(stdscr, true);
     curs_set(0);
 }
 
@@ -82,7 +82,7 @@ void menu_set_configure(struct menu_set *mset, const struct menu_config config)
 {
     assert(mset != NULL);
 
-    keypad(mset->win, TRUE);
+    keypad(mset->win, true);
     // @TODO
     // set_menu_format();
     // set_menu_fore();
@@ -91,7 +91,7 @@ void menu_set_configure(struct menu_set *mset, const struct menu_config config)
 
     struct pos req_size;
     scale_menu(mset->menu, &req_size.y, &req_size.x);
-    if (config.rescale == TRUE)
+    if (config.rescale == true)
     {
         if (mset->params->size.y < req_size.y + 2
             || mset->params->size.x < req_size.x + 2)
