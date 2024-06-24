@@ -36,6 +36,20 @@ void free2d(void **arr, size_t n_rows)
     free(arr);
 }
 
+void free_ptr_array(void **arr, size_t n)
+{
+    if (arr == NULL)
+    {
+        return;
+    }
+
+    for (size_t i = 0; i < n; i++)
+    {
+        free(arr[i]);
+    }
+    free(arr);
+}
+
 /* ---- LOGGING ---- */
 
 static FILE *log_file = NULL;

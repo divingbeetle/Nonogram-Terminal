@@ -19,6 +19,7 @@
 void **alloc2d(size_t n_rows, size_t n_cols, size_t type_size);
 void free2d(void **arr, size_t n_rows);
 
+void free_ptr_array(void **arr, size_t n);
 
 /* ---- LOGGING ---- */
 
