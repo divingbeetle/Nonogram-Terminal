@@ -1,5 +1,5 @@
 {
-    "format_version": "0.1.0",
+    "format_version": "0.2.0",
     "title": "Test set of invalid puzzles",
     "description": "Collection of puzzles that should run without errors",
     "num_puzzles": 0,
