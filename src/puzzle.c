@@ -309,6 +309,10 @@ struct puzzle *puzzle_load(const cJSON *json)
         cJSON *clueline = cJSON_GetArrayItem(row_clues, i);
         int arr_size = cJSON_GetArraySize(clueline);
         int start = row_clueline_size - arr_size;
+        for (int j = 0; j < start; j++)
+        {
+            pz->row_clues[i][j] = 0;
+        }
         for (int k = 0; k < arr_size; k++)
         {
             pz->row_clues[i][start + k] = cJSON_GetArrayItem(clueline, k)->valueint;
@@ -320,6 +324,10 @@ struct puzzle *puzzle_load(const cJSON *json)
         cJSON *clueline = cJSON_GetArrayItem(col_clues, i);
         int arr_size = cJSON_GetArraySize(clueline);
         int start = col_clueline_size - arr_size;
+        for (int j = 0; j < start; j++)
+        {
+            pz->col_clues[i][j] = 0;
+        }
         for (int k = 0; k < arr_size; k++)
         {
             pz->col_clues[i][start + k] = cJSON_GetArrayItem(clueline, k)->valueint;
