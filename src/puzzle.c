@@ -120,6 +120,7 @@ struct puzzle_set *puzzle_set_get_user_choice(void)
     {
         free(puzzle_sets[i]);
     }
+    free(puzzle_sets);
 
 
     return selected_pset;
@@ -127,7 +128,10 @@ struct puzzle_set *puzzle_set_get_user_choice(void)
 
 struct puzzle *puzzle_get_user_choice(struct puzzle_set *pset)
 {
-    assert(pset != NULL);
+    if (pset == NULL)
+    {
+        return NULL;
+    }
 
     int n_puzzle = pset->num_puzzles;
 
