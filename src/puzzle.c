@@ -50,7 +50,7 @@ static struct json_attr puzzle_attrs[PZ_ATTR_N] =
 {
     [PZ_ATTR_TITLE]      = {"title",      cJSON_String, 1, MAX_PZ_TITLE_LEN },
     [PZ_ATTR_AUTHOR]     = {"author",     cJSON_String, 1, MAX_PZ_AUTHOR_LEN},
-    [PZ_ATTR_DIFFICULTY] = {"difficulty", cJSON_Number, 1, 10               },
+    [PZ_ATTR_DIFFICULTY] = {"difficulty", cJSON_Number, 0, 10               },
     [PZ_ATTR_ROWS]       = {"rows",       cJSON_Number, 1, MAX_PZ_N_ROWS    },
     [PZ_ATTR_COLS]       = {"cols",       cJSON_Number, 1, MAX_PZ_N_COLS    },
     [PZ_ATTR_ROW_CLUES]  = {"row_clues",  cJSON_Array,  1, MAX_PZ_N_ROWS    },
@@ -128,6 +128,7 @@ struct puzzle_set *puzzle_set_get_user_choice(void)
 struct puzzle *puzzle_get_user_choice(struct puzzle_set *pset)
 {
     assert(pset != NULL);
+
     int n_puzzle = pset->num_puzzles;
 
     char *choices[n_puzzle];
