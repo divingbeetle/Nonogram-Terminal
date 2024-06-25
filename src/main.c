@@ -61,7 +61,7 @@ int main(void)
                 break;
 
             case MAIN_MENU_CONTINUE:
-                display_notification("Unimplemented");
+                load_and_play();
                 break;
 
             case MAIN_MENU_HOW_TO_PLAY:

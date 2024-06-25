@@ -1,5 +1,7 @@
 #include "game_core.h"
+#include "config.h"
 #include "utils.h"
+#include <string.h>
 
 #define UNDO_LIMIT 1024 // Should be power of 2
 #define UNDO_NEXT_INDEX(i) (((i) + 1) & (UNDO_LIMIT - 1))
@@ -364,6 +366,84 @@ bool game_solved(const struct game_state *gs)
     }
 
     return true;
+}
+
+void game_state_save(const struct game_state *gs)
+{
+    assert(gs != NULL);
+
+    FILE *fp = fopen(SAVE_FILE_NAME, "wb");
+    if (fp == NULL)
+    {
+        LOGF(LOG_WARNING, "Failed to open file: %s", SAVE_FILE_NAME);
+        return;
+    }
+
+    // Puzzle 
+    
+    const struct puzzle *pz = gs->puzzle;
+
+    fwrite(pz->title, sizeof(char), MAX_PZ_TITLE_LEN, fp);
+    fwrite(pz->author, sizeof(char), MAX_PZ_AUTHOR_LEN, fp);
+    fwrite(&pz->difficulty, sizeof(int), 1, fp);
+    fwrite(&pz->n_rows, sizeof(int), 1, fp);
+    fwrite(&pz->n_cols, sizeof(int), 1, fp);
+
+    fwrite(pz->row_clues[0], sizeof(int), pz->n_rows * get_row_clueline_size(pz), fp);
+    fwrite(pz->col_clues[0], sizeof(int), pz->n_cols * get_col_clueline_size(pz), fp);
+
+    // Board state
+    fwrite(gs->board_state[0], sizeof(enum cell_state), pz->n_rows * pz->n_cols, fp);
+    
+    fclose(fp);
+}
+
+struct game_state *game_state_load(void)
+{
+    struct puzzle *pz = malloc(sizeof(struct puzzle));
+    ALLOC_CHECK_RETURN(pz, NULL);
+
+    FILE *fp = fopen(SAVE_FILE_NAME, "rb");
+    if (fp == NULL)
+    {
+        LOGF(LOG_WARNING, "Failed to open file: %s", SAVE_FILE_NAME);
+        free(pz);
+        return NULL;
+    }
+
+    // Puzzle
+    
+    fread(pz->title, sizeof(char), MAX_PZ_TITLE_LEN, fp);
+    fread(pz->author, sizeof(char), MAX_PZ_AUTHOR_LEN, fp);
+    fread(&pz->difficulty, sizeof(int), 1, fp);
+    fread(&pz->n_rows, sizeof(int), 1, fp);
+    fread(&pz->n_cols, sizeof(int), 1, fp);
+
+    pz->row_clues = (int **)alloc2d(pz->n_rows, get_row_clueline_size(pz), sizeof(int));
+    pz->col_clues = (int **)alloc2d(pz->n_cols, get_col_clueline_size(pz), sizeof(int));
+    if (pz->row_clues == NULL || pz->col_clues == NULL)
+    {
+        free(pz);
+        fclose(fp);
+        return NULL;
+    }
+    fread(pz->row_clues[0], sizeof(int), pz->n_rows * get_row_clueline_size(pz), fp);
+    fread(pz->col_clues[0], sizeof(int), pz->n_cols * get_col_clueline_size(pz), fp);
+
+    struct game_state *gs = game_state_create(pz);
+    if (gs == NULL)
+    {
+        free(pz);
+        fclose(fp);
+        return NULL;
+    }
+
+    gs->board_state = board_state_create(pz);
+    fread(gs->board_state[0], sizeof(enum cell_state), pz->n_rows * pz->n_cols, fp);
+
+    fclose(fp);
+
+    return gs;
 }
 
 /* Private */

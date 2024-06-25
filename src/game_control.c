@@ -81,6 +81,31 @@ int play(const struct puzzle *pz)
     return 0;
 }
 
+int load_and_play(void)
+{
+    struct game_state *gs = game_state_load();
+    if (gs == NULL)
+    {
+        return -1;
+    }
+
+    struct game_controller *game = malloc(sizeof(*game));
+    ALLOC_CHECK_EXIT(game);
+
+    struct game_ui *ui    = game_ui_create(gs->puzzle);
+
+    game->puzzle = gs->puzzle;
+    game->state  = gs;
+    game->ui     = ui;
+    game->cursor = (struct cell){0, 0};
+    game->mode   = MODE_NORMAL;
+
+    display_base_board(game->ui);
+    run_game_loop(game);
+
+    return 0;
+}
+
 /* Private */
 
 struct game_controller *game_controller_create(const struct puzzle *pz)
@@ -396,7 +421,7 @@ int open_command_mode(struct game_controller *game)
             restore_capture(game->state);
             break;
         case CMD_SAVE:
-            // @TODO: SAVE
+            game_state_save(game->state);
             break;
         case CMD_QUIT:
             return EXIT_GAME;

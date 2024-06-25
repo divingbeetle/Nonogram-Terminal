@@ -38,6 +38,9 @@ enum cell_state get_cell_state(const struct game_state *gs, struct cell cell);
 void set_cell_state(struct game_state *gs, 
                     struct cell cell, enum cell_state state);
 
+void game_state_save(const struct game_state *gs);
+struct game_state *game_state_load(void);
+
 /**
  * Toggles the cell between given state and empty state.
  */

@@ -19,5 +19,6 @@ extern char *command_mode_choices[CMD_N];
 extern char *command_mode_desc[CMD_N];
 
 int play(const struct puzzle *pz);
+int load_and_play(void);
 
 #endif // GAME_CONTROL_H
