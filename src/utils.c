@@ -27,6 +27,28 @@ void **alloc2d(size_t n_rows, size_t n_cols, size_t type_size)
     return arr;
 }
 
+void **calloc2d(size_t n_rows, size_t n_cols, size_t type_size)
+{
+    void **arr = malloc(n_rows * sizeof(void *));
+    if (arr != NULL)
+    {
+        // Contiguous block
+        arr[0] = calloc(n_rows * n_cols, type_size);
+        if (arr[0] == NULL)
+        {
+            free(arr);
+            return NULL;
+        }
+
+        // Link
+        for (size_t i = 1; i < n_rows; i++)
+        {
+            arr[i] = (char *)arr[0] + i * n_cols * type_size;
+        }
+    }
+    return arr;
+}
+
 void free2d(void **arr, size_t n_rows)
 {
     if (arr != NULL)
