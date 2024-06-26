@@ -1,106 +1,147 @@
-#include "loader.h"
-#include "utils.h"
 #include <dirent.h>
 #include <errno.h>
-#include <stdbool.h>
 #include <string.h>
+
+#include "loader.h"
+#include "utils.h"
 
 /* Function Prototypes */
 
 long get_file_size(FILE *fp);
 DIR *open_directory(const char *dir_name);
-struct dirent *get_next_json_file(DIR *dir);
-char *create_file_path(const char *dir_name, const char *file_name);
 
-bool validate_type(const cJSON *obj, 
-                   struct json_attr attr, const char *file_name);
-bool validate_range(const cJSON *obj, 
-                    struct json_attr attr, const char *file_name);
+struct dirent *next_json_entry(DIR *dir);
+char *construct_file_path(const char *dir_name, const char *file_name);
+
+bool is_valid_property_type(const cJSON *obj, struct json_property prop);
+bool is_valid_property_range(const cJSON *obj, struct json_property prop);
+
 /* Public */
 
 char *load_file(const char *file_name)
 {
-    assert(file_name != NULL);
-    FILE *fp = fopen(file_name, "r");
+    FILE *fp  = NULL;
+    char *buf = NULL;
+
+    fp = fopen(file_name, "r");
     if (fp == NULL)
     {
-        LOGF(LOG_ERROR, "Failed to open file: %s", file_name);
+        LOGF(LOG_ERROR, "Failed to open file: '%s'", file_name);
         return NULL;
     }
 
     long file_size = get_file_size(fp);
-    char *buf      = malloc(file_size + 1);
+    if (file_size <= 0)
+    {
+        LOGF(LOG_ERROR, "Failed to get valid file size: '%s'", file_name);
+        goto cleanup;
+    }
+
+    buf = malloc(file_size + 1);
     if (buf == NULL)
     {
         LOG(LOG_ERROR, "Memory allocation failed");
-        fclose(fp);
-        return NULL;
+        goto cleanup;
     }
-    fread(buf, 1, file_size, fp);
-    buf[file_size] = '\0';
-    fclose(fp);
 
+    if (fread(buf, 1, file_size, fp) != file_size)
+    {
+        LOGF(LOG_ERROR, "Failed to read file: %s", file_name);
+        goto cleanup;
+    }
+
+    fclose(fp);
+    buf[file_size] = '\0';
     return buf;
+
+cleanup:
+    if (fp != NULL)  fclose(fp);
+    if (buf != NULL) free(buf);
+    return NULL;
 }
 
-char **get_json_files_list(const char *dir_name, int *n_files_out)
+char **list_json_files(const char *dir_name, int *n_files_out)
 {
-    DIR *dir = open_directory(dir_name);
-    if (dir == NULL)
+    assert(dir_name != NULL);
+    assert(n_files_out != NULL);
+
+    DIR *dir = NULL;
+    char **file_list = NULL;
+    int files_cnt = 0;
+
+    dir = open_directory(dir_name);
+    if (dir == NULL) return NULL;
+
+    // Count numbers first to allocate memory
+    while (next_json_entry(dir) != NULL)
     {
-        return NULL;
+        files_cnt++;
     }
 
-    int n_files = 0;
-    while (get_next_json_file(dir) != NULL)
-    {
-        n_files++;
-    }
-
-    char **files_list = malloc(n_files * sizeof(*files_list));
-    if (files_list == NULL)
+    file_list = malloc(files_cnt * sizeof(*file_list));
+    if (file_list == NULL)
     {
         LOG(LOG_ERROR, "Memory allocation failed");
-        closedir(dir);
-        return NULL;
+        goto cleanup;
     }
 
+    // Reset
     rewinddir(dir);
-    n_files = 0;
+    files_cnt = 0;
 
+    // Store 
     struct dirent *entry;
-    while ((entry = get_next_json_file(dir)) != NULL)
+    while ((entry = next_json_entry(dir)) != NULL)
     {
-        char *file_path = create_file_path(dir_name, entry->d_name);
+        char *file_path = construct_file_path(dir_name, entry->d_name);
         if (file_path == NULL)
         {
-            LOG(LOG_ERROR, "Memory allocation failed");
-            free_ptr_array((void **) files_list, n_files);
-            closedir(dir);
-            return NULL;
+            goto cleanup;
         }
-        files_list[n_files++] = file_path;
+        file_list[files_cnt++] = file_path;
     }
 
     closedir(dir);
-    *n_files_out = n_files;
-    return files_list;
+    *n_files_out = files_cnt;
+    return file_list;
+
+cleanup:
+    if (dir != NULL)       closedir(dir);
+    if (file_list != NULL) free_ptr_array((void **) file_list, files_cnt);
+    return NULL;
 }
 
-bool validate_attr(const cJSON *json, 
-                   struct json_attr attr, const char *file_name)
+bool is_valid_json_property(const cJSON *json, const struct json_property prop)
 {
-    assert(json != NULL);
-    assert(file_name != NULL);
+    cJSON *obj = get_cJSON(json, prop);
 
-    cJSON *obj = get_cJSON(json, attr);
+    return (is_valid_property_type(obj, prop) &&
+            is_valid_property_range(obj, prop));
+}
 
-    if (!validate_type(obj, attr, file_name))
-        return false;
-    if (!validate_range(obj, attr, file_name))
-        return false;
+cJSON *cJSON_parse_file(const char *file_name)
+{
+    char *file_buf = load_file(file_name);
+    if (file_buf == NULL) return NULL;
 
-    return true;
+    const char *error_ptr = NULL;
+    cJSON *json = cJSON_Parse(file_buf);
+    if (json == NULL)
+    {
+        error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL)
+        {
+            LOGF(LOG_WARNING, 
+                 "cJSON Error parsing '%s' at %s", file_name, error_ptr);
+        }
+        else
+        {
+            LOGF(LOG_WARNING, "cJSON Error parsing '%s'", file_name);
+        }
+    }
+
+    free(file_buf);
+    return json;
 }
 
 /* Private */
@@ -118,39 +159,36 @@ long get_file_size(FILE *fp)
 
 DIR *open_directory(const char *dir_name)
 {
-    assert(dir_name != NULL);
-
     DIR *dir = opendir(dir_name);
     if (dir == NULL)
     {
         switch (errno)
         {
             case ENOENT:
-                LOGF(LOG_ERROR, "Directory does not exist: %s", dir_name);
+                LOGF(LOG_ERROR, "Directory not found: '%s'", dir_name);
                 break;
             case EACCES:
-                LOGF(LOG_ERROR, "Permission denied: %s", dir_name);
+                LOGF(LOG_ERROR, "Access denied to directory: '%s'", dir_name);
                 break;
             case ENOTDIR:
-                LOGF(LOG_ERROR, "Not a directory: %s", dir_name);
+                LOGF(LOG_ERROR, "Not a directory: '%s'", dir_name);
                 break;
             default:
-                LOGF(LOG_ERROR, "Failed to open directory: %s", dir_name);
+                LOGF(LOG_ERROR, "Failed to open directory: '%s'", dir_name);
                 break;
         }
-        return NULL;
     }
     return dir;
 }
 
-struct dirent *get_next_json_file(DIR *dir)
+struct dirent *next_json_entry(DIR *dir)
 {
     assert(dir != NULL);
 
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL)
     {
-        if (entry->d_type == DT_REG)
+        if (entry->d_type == DT_REG || entry->d_type == DT_UNKNOWN)
         {
             char *ext = strrchr(entry->d_name, '.');
             if (ext != NULL && strcmp(ext, ".json") == 0)
@@ -162,12 +200,12 @@ struct dirent *get_next_json_file(DIR *dir)
     return NULL;
 }
 
-char *create_file_path(const char *dir_name, const char *file_name)
+char *construct_file_path(const char *dir_name, const char *file_name)
 {
     assert(file_name != NULL);
     assert(dir_name != NULL);
 
-    int path_len    = strlen(dir_name) + strlen(file_name) + 2;
+    int   path_len  = strlen(dir_name) + strlen(file_name) + 2;
     char *full_path = malloc(path_len);
     ALLOC_CHECK_RETURN(full_path, NULL);
 
@@ -175,12 +213,9 @@ char *create_file_path(const char *dir_name, const char *file_name)
     return full_path;
 }
 
-bool validate_type(const cJSON *obj, 
-                   struct json_attr attr, const char *file_name)
+bool is_valid_property_type(const cJSON *obj, const struct json_property prop)
 {
-    assert(file_name != NULL);
-
-    switch (attr.type)
+    switch (prop.type)
     {
         case cJSON_String:
             if (cJSON_IsString(obj) && obj->valuestring)
@@ -195,43 +230,48 @@ bool validate_type(const cJSON *obj,
                 return true;
             break;
         default:
+            // @TODO Add more types when needed
             return false;
             break;
     }
 
     LOGF(LOG_WARNING,
-        "%s - Invalid or missing JSON attribute: %s", file_name, attr.name);
+        "Invalid or missing JSON property: '%s'", prop.name);
     return false;
 }
 
-bool validate_range(const cJSON *obj, 
-                    struct json_attr attr, const char *file_name)
+bool is_valid_property_range(const cJSON *obj, const struct json_property prop)
 {
-    assert(file_name != NULL);
-    
-    int val;
-    if (cJSON_IsNumber(obj))
+    int         check_val;
+    const char *check_type;
+
+    switch (prop.type)
     {
-        val = obj->valueint;
-    }
-    else if (cJSON_IsString(obj))
-    {
-        val = strlen(obj->valuestring);
-    }
-    else if (cJSON_IsArray(obj))
-    {
-        val = cJSON_GetArraySize(obj);
-    }
-    else 
-    {
-        return false;
+        case cJSON_String:
+            check_val  = strlen(obj->valuestring);
+            check_type = "text length";
+            break;
+        case cJSON_Number:
+            check_val  = obj->valueint;
+            check_type = "value";
+            break;
+        case cJSON_Array:
+            check_val  = cJSON_GetArraySize(obj);
+            check_type = "array size";
+            break;
+        default:
+            // @TODO Add more types when needed
+            return false;
+            break;
+
     }
 
-    if (val < attr.min || val > attr.max)
+    if (check_val < prop.min || check_val > prop.max)
     {
         LOGF(LOG_WARNING, 
-             "%s - Invalid JSON attribute %s: Got %d, Expected %d to %d", 
-             file_name, attr.name, val, attr.min, attr.max);
+             "Invalid range for JSON attribute '%s' %s: "
+             "Got %d, Expected %d to %d", 
+             prop.name, check_type, check_val, prop.min, prop.max);
 
         return false;
     }

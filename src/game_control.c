@@ -77,6 +77,7 @@ int play(const struct puzzle *pz)
     struct game_controller *game = game_controller_create(pz);
     display_base_board(game->ui);
     run_game_loop(game);
+    game_controller_destroy(game);
 
     return 0;
 }
@@ -102,6 +103,7 @@ int load_and_play(void)
 
     display_base_board(game->ui);
     run_game_loop(game);
+    game_controller_destroy(game);
 
     return 0;
 }

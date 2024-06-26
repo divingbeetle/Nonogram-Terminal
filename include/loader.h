@@ -1,33 +1,50 @@
 #ifndef LOADER_H
 #define LOADER_H
 
-#include <cJSON/cJSON.h>
 #include <stdbool.h>
+#include "cJSON/cJSON.h"
 
-struct json_attr
+/**
+ * @brief Expected spec for JSON field
+ */
+struct json_property
 {
-    const char *name;
+    const char *name; 
     int type;
     int min, max;
 };
 
 /**
- * Load a text file 
+ * @brief  Loads entire text file into memory
  * @retval NULL if error
  */
 char *load_file(const char *file_name);
 
-
-char **get_json_files_list(const char *dir_name, int *n_files_out);
-
-bool validate_attr(const cJSON *json, struct json_attr attr, const char *file_name);
+/**
+ * @brief  Lists all JSON file names in a directory
+ * @param  n_files_out Number of files found, output parameter
+ * @return Array of strings, with directory path. NULL if error
+ * @TODO   Portability improvements
+ */
+char **list_json_files(const char *dir_name, int *n_files_out);
 
 /** 
- * Wrapper for cJSON_GetObjectItemCaseSensitive
+ * @breif  Check if parsed json object has property with correct spec
  */
-static inline cJSON *get_cJSON(const cJSON *json, struct json_attr attr)
+bool is_valid_json_property(const cJSON *json, const struct json_property prop);
+
+/**
+ * @brief  Parse JSON file into cJSON object
+ * @retval NULL if error
+ */
+cJSON *cJSON_parse_file(const char *file_name);
+
+/** 
+ * @brief Wrapper for cJSON_GetObjectItemCaseSensitive
+ */
+static inline cJSON *get_cJSON(const cJSON *json, struct json_property prop)
 {
-    return cJSON_GetObjectItemCaseSensitive(json, attr.name);
+    return cJSON_GetObjectItemCaseSensitive(json, prop.name);
 }
 
 #endif // LOADER_H

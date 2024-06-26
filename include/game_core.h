@@ -17,11 +17,6 @@ enum cell_state
     CELL_TEMP_XMARKED
 };
 
-enum axis 
-{
-    AXIS_ROW,
-    AXIS_COL
-};
 
 struct game_state 
 {

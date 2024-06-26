@@ -1,85 +1,156 @@
-#include "puzzle.h"
-#include "config.h"
-#include "loader.h"
-#include "utils.h"
-#include "tui.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
+#include "loader.h"
+#include "puzzle.h"
+#include "tui.h"
+#include "utils.h"
+
 enum load_mode 
 {
-    LOAD_LAZY,
-    LOAD_EAGER
+    LOAD_METADATA_ONLY,
+    LOAD_ALL
 };
 
 /* As of ver 0.2.0 */
 
-enum puzzle_set_attr 
+enum puzzle_json_key 
 {
-    PSET_ATTR_FMT_VER,
-    PSET_ATTR_TITLE,
-    PSET_ATTR_DESC,
-    PSET_ATTR_N_PUZZLES,
-    PSET_ATTR_PUZZLES,
-    PSET_ATTR_N
+    // Puzzle Set keys
+    KEY_PSET_FMT_VER,
+    KEY_PSET_TITLE,
+    KEY_PSET_DESC,
+    KEY_PSET_N_PUZZLES,
+    KEY_PSET_PUZZLES,
+
+    // Each Puzzle
+    KEY_PZ_TITLE,
+    KEY_PZ_AUTHOR,
+    KEY_PZ_DIFFICULTY,
+    KEY_PZ_ROWS,
+    KEY_PZ_COLS,
+    KEY_PZ_ROW_CLUES,
+    KEY_PZ_COL_CLUES,
+
+    KEY_N_KEYS
 };
 
-enum puzzle_attr 
-{
-    PZ_ATTR_TITLE,
-    PZ_ATTR_AUTHOR,
-    PZ_ATTR_DIFFICULTY,
-    PZ_ATTR_ROWS,
-    PZ_ATTR_COLS,
-    PZ_ATTR_ROW_CLUES,
-    PZ_ATTR_COL_CLUES,
-    PZ_ATTR_N
-};
+#define PSET_KEY_START KEY_PSET_FMT_VER
+#define PZ_KEY_START   KEY_PZ_TITLE
+#define PSET_KEY_END   PZ_KEY_START
+#define PZ_KEY_END     KEY_N_KEYS
 
-static struct json_attr puzzle_set_attrs[PSET_ATTR_N] = 
+static const struct json_property puzzle_json_props[KEY_N_KEYS] = 
 {
-    [PSET_ATTR_FMT_VER] = {"format_version", cJSON_String, 1, JSON_FMT_VER_LEN},
-    [PSET_ATTR_TITLE]   = {"title",          cJSON_String, 1, MAX_PZ_TITLE_LEN},
-    [PSET_ATTR_DESC]    = {"description",    cJSON_String, 1, MAX_PZ_DESC_LEN },
-    [PSET_ATTR_N_PUZZLES] = {"num_puzzles",  cJSON_Number, 1, MAX_PZ_PER_SET  },
-    [PSET_ATTR_PUZZLES]   = {"puzzles",      cJSON_Array,  1, MAX_PZ_PER_SET  }
-};
-
-static struct json_attr puzzle_attrs[PZ_ATTR_N] = 
-{
-    [PZ_ATTR_TITLE]      = {"title",      cJSON_String, 1, MAX_PZ_TITLE_LEN },
-    [PZ_ATTR_AUTHOR]     = {"author",     cJSON_String, 1, MAX_PZ_AUTHOR_LEN},
-    [PZ_ATTR_DIFFICULTY] = {"difficulty", cJSON_Number, 0, 10               },
-    [PZ_ATTR_ROWS]       = {"rows",       cJSON_Number, 1, MAX_PZ_N_ROWS    },
-    [PZ_ATTR_COLS]       = {"cols",       cJSON_Number, 1, MAX_PZ_N_COLS    },
-    [PZ_ATTR_ROW_CLUES]  = {"row_clues",  cJSON_Array,  1, MAX_PZ_N_ROWS    },
-    [PZ_ATTR_COL_CLUES]  = {"col_clues",  cJSON_Array,  1, MAX_PZ_N_COLS    }
+    [KEY_PSET_FMT_VER] = 
+    {
+        .name = "format_version",
+        .type = cJSON_String,
+        .min = 1,
+        .max = JSON_FMT_VER_LEN
+    },
+    [KEY_PSET_TITLE] = 
+    {
+        .name = "title",
+        .type = cJSON_String,
+        .min = 1,
+        .max = MAX_PZ_TITLE_LEN
+    },
+    [KEY_PSET_DESC] = 
+    {
+        .name = "description",
+        .type = cJSON_String,
+        .min = 1,
+        .max = MAX_PZ_DESC_LEN
+    },
+    [KEY_PSET_N_PUZZLES] = 
+    {
+        .name = "num_puzzles",
+        .type = cJSON_Number,
+        .min = 1,
+        .max = MAX_PZ_PER_SET
+    },
+    [KEY_PSET_PUZZLES] = 
+    {
+        .name = "puzzles",
+        .type = cJSON_Array,
+        .min = 1,
+        .max = MAX_PZ_PER_SET
+    },
+    [KEY_PZ_TITLE] = 
+    {
+        .name = "title",
+        .type = cJSON_String,
+        .min = 1,
+        .max = MAX_PZ_TITLE_LEN
+    },
+    [KEY_PZ_AUTHOR] = 
+    {
+        .name = "author",
+        .type = cJSON_String,
+        .min = 1,
+        .max = MAX_PZ_AUTHOR_LEN
+    },
+    [KEY_PZ_DIFFICULTY] = 
+    {
+        .name = "difficulty",
+        .type = cJSON_Number,
+        .min = 0,
+        .max = 10
+    },
+    [KEY_PZ_ROWS] = 
+    {
+        .name = "rows",
+        .type = cJSON_Number,
+        .min = 1,
+        .max = MAX_PZ_N_ROWS
+    },
+    [KEY_PZ_COLS] = 
+    {
+        .name = "cols",
+        .type = cJSON_Number,
+        .min = 1,
+        .max = MAX_PZ_N_COLS
+    },
+    [KEY_PZ_ROW_CLUES] = 
+    {
+        .name = "row_clues",
+        .type = cJSON_Array,
+        .min = 1,
+        .max = MAX_PZ_N_ROWS
+    },
+    [KEY_PZ_COL_CLUES] = 
+    {
+        .name = "col_clues",
+        .type = cJSON_Array,
+        .min = 1,
+        .max = MAX_PZ_N_COLS
+    }
 };
 
 /* Function Prototypes */
 
-bool validate_puzzle_set_metadata(const cJSON *json, const char *file_name);
+bool is_valid_json_puzzle_format(const cJSON *json);
+bool is_valid_puzzle_set_metadata(const cJSON *json);
+bool is_valid_puzzles(const cJSON *puzzles);
 
-bool validate_puzzles(const cJSON *puzzles, const char *file_name);
+struct puzzle *puzzle_create(const cJSON *json);
+int **clues_create(const cJSON *json, const struct puzzle *pz, enum axis axis);
 
-void puzzle_destroy(struct puzzle *puzzle);
+struct puzzle_set *puzzle_set_create(const char *file_name, enum load_mode mode);
+void load_puzzle_set_metadata(const cJSON *json, struct puzzle_set *pset);
 
-struct puzzle *puzzle_load(const cJSON *json);
-struct puzzle_set *puzzle_set_load(const cJSON *json, const char *file_name, enum load_mode mode);
-
-struct puzzle_set *parse_puzzle_set(const char *file_name, enum load_mode mode);
-struct puzzle_set **create_puzzle_set_arr(int *n_out);
+struct puzzle_set **create_puzzle_set_arr(int *arr_size_out);
 
 /* Public */
+
 struct puzzle_set *puzzle_set_get_user_choice(void)
 {
     int n_puzzle_sets;
     struct puzzle_set **puzzle_sets = create_puzzle_set_arr(&n_puzzle_sets);
-    if (puzzle_sets == NULL)
-    {
-        return NULL;
-    }
+    if (puzzle_sets == NULL) return NULL;
 
     char *choices[n_puzzle_sets];
     for (int i = 0; i < n_puzzle_sets; i++)
@@ -111,27 +182,20 @@ struct puzzle_set *puzzle_set_get_user_choice(void)
     menu_set_destroy(mset);
     if (selected == MENU_NOT_SELECTED)
     {
+        free_ptr_array((void **) puzzle_sets, n_puzzle_sets);
         return NULL;
     }
 
     struct puzzle_set *selected_pset;
-    selected_pset = parse_puzzle_set(puzzle_sets[selected]->file_name, LOAD_EAGER);
-    for (int i = 0; i < n_puzzle_sets; i++)
-    {
-        free(puzzle_sets[i]);
-    }
-    free(puzzle_sets);
-
+    selected_pset = puzzle_set_create(puzzle_sets[selected]->file_name, LOAD_ALL);
+    free_ptr_array((void **) puzzle_sets, n_puzzle_sets);
 
     return selected_pset;
 }
 
 struct puzzle *puzzle_get_user_choice(struct puzzle_set *pset)
 {
-    if (pset == NULL)
-    {
-        return NULL;
-    }
+    if (pset == NULL) return NULL;
 
     int n_puzzle = pset->num_puzzles;
 
@@ -171,95 +235,9 @@ struct puzzle *puzzle_get_user_choice(struct puzzle_set *pset)
             free(pset->puzzles[i]);
         }
     }
+    free(pset);
 
     return selected_puzzle;
-}
-
-/* Private */ 
-
-struct puzzle_set **create_puzzle_set_arr(int *n_out)
-{
-    assert(n_out != NULL);
-    char **files_list;
-    int n_files;
-
-    files_list = get_json_files_list(PUZZLE_DIR, &n_files);
-    if (files_list == NULL)
-    {
-        return NULL;
-    }
-
-    struct puzzle_set **puzzle_sets = malloc(n_files * sizeof(struct puzzle_set *));
-    if (puzzle_sets == NULL)
-    {
-        LOG(LOG_ERROR, "Memory allocation failed");
-        free_ptr_array((void **) files_list, n_files);
-        return NULL;
-    }
-
-    *n_out = 0;
-    for (int i = 0; i < n_files; i++)
-    {
-        struct puzzle_set *puzzle_set = parse_puzzle_set(files_list[i], LOAD_LAZY);
-        if (puzzle_set == NULL)
-        {
-            LOG(LOG_ERROR, "Failed to parse puzzle set");
-            continue;
-        }
-
-        puzzle_sets[(*n_out)++] = puzzle_set;
-    }
-
-    free_ptr_array((void **) files_list, n_files);
-    return puzzle_sets;
-}
-
-bool validate_puzzle_set_metadata(const cJSON *json, const char *file_name)
-{
-    assert(file_name != NULL);
-    assert(json != NULL);
-
-    for (int i = 0; i < PSET_ATTR_N; i++)
-    {
-        if (!validate_attr(json, puzzle_set_attrs[i], file_name))
-            return false;
-    }
-
-    cJSON *fmt_ver = get_cJSON(json, puzzle_set_attrs[PSET_ATTR_FMT_VER]);
-    if (strcmp(fmt_ver->valuestring, JSON_FMT_VER) != 0)
-    {
-        LOGF(LOG_WARNING, 
-             "%s - Invalid JSON format version: Got %s, Expected %s",
-             file_name, fmt_ver->valuestring);
-        return false;
-    }
-    return true;
-}
-
-bool validate_puzzles(const cJSON *puzzles, const char *file_name)
-{
-    assert(file_name != NULL);
-    assert(puzzles != NULL);
-
-    const cJSON *pz;
-    cJSON_ArrayForEach(pz, puzzles)
-    {
-        if (!cJSON_IsObject(pz))
-        {
-            LOGF(LOG_WARNING, 
-                 "%s - Invalid JSON attribute: %s", 
-                 file_name, puzzle_set_attrs[PSET_ATTR_PUZZLES].name);
-            return false;
-        }
-
-        for (int i = 0; i < PZ_ATTR_N; i++)
-        {
-            if (!validate_attr(pz, puzzle_attrs[i], file_name))
-                return false;
-        }
-    }
-
-    return true;
 }
 
 void puzzle_destroy(struct puzzle *puzzle)
@@ -268,149 +246,247 @@ void puzzle_destroy(struct puzzle *puzzle)
     {
         free2d((void **) puzzle->row_clues, puzzle->n_rows);
         free2d((void **) puzzle->col_clues, puzzle->n_cols);
-        free(puzzle);
     }
+    free(puzzle);
 }
 
-struct puzzle *puzzle_load(const cJSON *json)
+/* Private */ 
+
+struct puzzle_set **create_puzzle_set_arr(int *arr_size_out)
+{
+    assert(arr_size_out != NULL);
+
+    char              **file_names = NULL;
+    struct puzzle_set **pset_arr   = NULL;
+    struct puzzle_set  *pset       = NULL;
+
+    int n_json_files;
+    file_names = list_json_files(PUZZLE_DIR, &n_json_files);
+    if (file_names == NULL) return NULL;
+
+    pset_arr = malloc(n_json_files * sizeof(struct puzzle_set *));
+    if (pset_arr == NULL)
+    {
+        LOG(LOG_ERROR, "Memory allocation failed");
+        free_ptr_array((void **) file_names, n_json_files);
+        return NULL;
+    }
+
+    // Add valid puzzle sets only
+    int n_puzzle_sets = 0;
+    for (int i = 0; i < n_json_files; i++)
+    {
+        pset = puzzle_set_create(file_names[i], LOAD_METADATA_ONLY);
+        if (pset != NULL)
+        {
+            pset_arr[n_puzzle_sets++] = pset;
+        }
+    }
+
+    *arr_size_out = n_puzzle_sets;
+    free_ptr_array((void **) file_names, n_json_files);
+    return pset_arr;
+}
+
+int **clues_create(const cJSON *json, const struct puzzle *pz, enum axis axis)
+{
+    assert(json != NULL);
+    assert(pz != NULL);
+
+    int axis_size = (axis == AXIS_ROW) ? pz->n_rows : pz->n_cols;
+    int clueline_size = (axis == AXIS_ROW) 
+                         ? get_row_clueline_size(pz) 
+                         : get_col_clueline_size(pz);
+
+    int **clues = (int **) calloc2d(axis_size, clueline_size, sizeof(int));
+    ALLOC_CHECK_RETURN(clues, NULL);
+
+    // Right align
+    for (int i = 0; i < axis_size; i++)
+    {
+        cJSON *clues_json = cJSON_GetArrayItem(json, i);
+        int arr_size = cJSON_GetArraySize(clues_json);
+        int start = clueline_size - arr_size;
+        for (int k = 0; k < arr_size; k++)
+        {
+            clues[i][start + k] = cJSON_GetArrayItem(clues_json, k)->valueint;
+        }
+    }
+
+    return clues;
+}
+
+struct puzzle *puzzle_create(const cJSON *json)
 {
     struct puzzle *pz = malloc(sizeof(struct puzzle));
     ALLOC_CHECK_RETURN(pz, NULL);
 
-    cJSON *title      = get_cJSON(json, puzzle_attrs[PZ_ATTR_TITLE]);
-    cJSON *author     = get_cJSON(json, puzzle_attrs[PZ_ATTR_AUTHOR]);
-    cJSON *difficulty = get_cJSON(json, puzzle_attrs[PZ_ATTR_DIFFICULTY]);
-    cJSON *rows       = get_cJSON(json, puzzle_attrs[PZ_ATTR_ROWS]);
-    cJSON *cols       = get_cJSON(json, puzzle_attrs[PZ_ATTR_COLS]);
-    cJSON *row_clues  = get_cJSON(json, puzzle_attrs[PZ_ATTR_ROW_CLUES]);
-    cJSON *col_clues  = get_cJSON(json, puzzle_attrs[PZ_ATTR_COL_CLUES]);
+    cJSON *title      = get_cJSON(json, puzzle_json_props[KEY_PZ_TITLE]);
+    cJSON *author     = get_cJSON(json, puzzle_json_props[KEY_PZ_AUTHOR]);
+    cJSON *difficulty = get_cJSON(json, puzzle_json_props[KEY_PZ_DIFFICULTY]);
+    cJSON *rows       = get_cJSON(json, puzzle_json_props[KEY_PZ_ROWS]);
+    cJSON *cols       = get_cJSON(json, puzzle_json_props[KEY_PZ_COLS]);
+    cJSON *row_clues  = get_cJSON(json, puzzle_json_props[KEY_PZ_ROW_CLUES]);
+    cJSON *col_clues  = get_cJSON(json, puzzle_json_props[KEY_PZ_COL_CLUES]);
 
-    strncpy(pz->title, title->valuestring, MAX_PZ_TITLE_LEN);
+    strncpy(pz->title,  title->valuestring,  MAX_PZ_TITLE_LEN);
     strncpy(pz->author, author->valuestring, MAX_PZ_AUTHOR_LEN);
 
     pz->difficulty = difficulty->valueint;
     pz->n_rows     = rows->valueint;
     pz->n_cols     = cols->valueint;
 
-    int row_clueline_size = get_row_clueline_size(pz);
-    int col_clueline_size = get_col_clueline_size(pz);
-
-    pz->row_clues = (int **) calloc2d(pz->n_rows, row_clueline_size, 
-                                     sizeof(int));
-    pz->col_clues = (int **) calloc2d(pz->n_cols, col_clueline_size, 
-                                     sizeof(int));
-
-    ALLOC_CHECK_RETURN(pz->row_clues, NULL);
-    ALLOC_CHECK_RETURN(pz->col_clues, NULL);
-
-    // Right align clues
-    for (int i = 0; i < pz->n_rows; i++)
+    pz->row_clues = clues_create(row_clues, pz, AXIS_ROW);
+    if (pz->row_clues == NULL)
     {
-        cJSON *clueline = cJSON_GetArrayItem(row_clues, i);
-        int arr_size = cJSON_GetArraySize(clueline);
-        int start = row_clueline_size - arr_size;
-        for (int k = 0; k < arr_size; k++)
-        {
-            pz->row_clues[i][start + k] = cJSON_GetArrayItem(clueline, k)->valueint;
-        }
+        free(pz);
+        return NULL;
     }
 
-    for (int i = 0; i < pz->n_cols; i++)
+    pz->col_clues = clues_create(col_clues, pz, AXIS_COL);
+    if (pz->col_clues == NULL)
     {
-        cJSON *clueline = cJSON_GetArrayItem(col_clues, i);
-        int arr_size = cJSON_GetArraySize(clueline);
-        int start = col_clueline_size - arr_size;
-        for (int k = 0; k < arr_size; k++)
-        {
-            pz->col_clues[i][start + k] = cJSON_GetArrayItem(clueline, k)->valueint;
-        }
+        free2d((void **) pz->row_clues, pz->n_rows);
+        free(pz);
+        return NULL;
     }
 
     return pz;
 }
 
-struct puzzle_set *puzzle_set_load(const cJSON *json, const char *file_name, enum load_mode mode)
+
+void load_puzzle_set_metadata(const cJSON *json, struct puzzle_set *pset)
+{
+    assert(json != NULL);
+    assert(pset != NULL);
+    assert(pset->file_name != NULL);
+
+    cJSON *fmt_ver   = get_cJSON(json, puzzle_json_props[KEY_PSET_FMT_VER]);
+    cJSON *title     = get_cJSON(json, puzzle_json_props[KEY_PSET_TITLE]);
+    cJSON *desc      = get_cJSON(json, puzzle_json_props[KEY_PSET_DESC]);
+    cJSON *n_puzzles = get_cJSON(json, puzzle_json_props[KEY_PSET_N_PUZZLES]);
+
+    strncpy(pset->format_ver, fmt_ver->valuestring, JSON_FMT_VER_LEN);
+    strncpy(pset->title,      title->valuestring,   MAX_PZ_TITLE_LEN);
+    strncpy(pset->desc,       desc->valuestring,    MAX_PZ_DESC_LEN);
+    pset->num_puzzles = n_puzzles->valueint;
+}
+
+struct puzzle_set *puzzle_set_create(const char *file_name, enum load_mode mode)
+{
+    struct puzzle_set *pset = NULL;
+    cJSON             *json = NULL;
+
+    int n_puzzles_created = 0;
+
+    json = cJSON_parse_file(file_name);
+    if (json == NULL) return NULL;
+
+    if (!is_valid_json_puzzle_format(json))
+    {
+        LOGF(LOG_WARNING, "Invalid JSON format in file: %s", file_name);
+        goto cleanup;
+    }
+
+    pset = malloc(sizeof(struct puzzle_set));
+    ALLOC_CHECK_RETURN(pset, NULL);
+
+    strncpy(pset->file_name, file_name, MAX_PZ_FILE_NAME_LEN);
+    load_puzzle_set_metadata(json, pset);
+
+    n_puzzles_created = 0;
+    if (mode != LOAD_METADATA_ONLY)
+    {
+        struct puzzle *pz;
+        cJSON *puzzles_json;
+        cJSON *pz_json;
+        puzzles_json = get_cJSON(json, puzzle_json_props[KEY_PSET_PUZZLES]);
+        for (int i = 0; i < pset->num_puzzles; i++)
+        {
+            pz_json = cJSON_GetArrayItem(puzzles_json, i);
+            pz = puzzle_create(pz_json);
+            if (pz == NULL)
+            {
+                goto cleanup;
+            }
+            pset->puzzles[i] = pz;
+            n_puzzles_created++;
+        }
+    }
+
+    cJSON_Delete(json);
+    return pset;
+
+cleanup:
+    cJSON_Delete(json);
+    if (pset != NULL)
+    {
+        for (int i = 0; i < n_puzzles_created; i++)
+        {
+            puzzle_destroy(pset->puzzles[i]);
+        }
+        free(pset);
+    }
+    return NULL;
+}
+
+bool is_valid_json_puzzle_format(const cJSON *json)
+{
+    if (is_valid_puzzle_set_metadata(json))
+    {
+        cJSON *puzzles = get_cJSON(json, puzzle_json_props[KEY_PSET_PUZZLES]);
+        if (is_valid_puzzles(puzzles))
+        {
+            return true;
+        }
+    }
+    return false; 
+}
+
+bool is_valid_puzzle_set_metadata(const cJSON *json)
 {
     assert(json != NULL);
 
-    struct puzzle_set *pset = malloc(sizeof(struct puzzle_set));
-    ALLOC_CHECK_RETURN(pset, NULL);
-
-    cJSON *fmt_ver   = get_cJSON(json, puzzle_set_attrs[PSET_ATTR_FMT_VER]);
-    cJSON *title     = get_cJSON(json, puzzle_set_attrs[PSET_ATTR_TITLE]);
-    cJSON *desc      = get_cJSON(json, puzzle_set_attrs[PSET_ATTR_DESC]);
-    cJSON *n_puzzles = get_cJSON(json, puzzle_set_attrs[PSET_ATTR_N_PUZZLES]);
-
-    strncpy(pset->file_name, file_name, MAX_PZ_FILE_NAME_LEN);
-    strncpy(pset->format_ver, fmt_ver->valuestring, JSON_FMT_VER_LEN);
-    strncpy(pset->title, title->valuestring, MAX_PZ_TITLE_LEN);
-    strncpy(pset->desc, desc->valuestring, MAX_PZ_DESC_LEN);
-    pset->num_puzzles = n_puzzles->valueint;
-
-    if (mode != LOAD_LAZY)
+    for (int i = PSET_KEY_START; i < PSET_KEY_END; i++)
     {
-        cJSON *puzzles = get_cJSON(json, puzzle_set_attrs[PSET_ATTR_PUZZLES]);
-        for (int i = 0; i < pset->num_puzzles; i++)
+        if (!is_valid_json_property(json, puzzle_json_props[i]))
         {
-            cJSON *pz = cJSON_GetArrayItem(puzzles, i);
-            pset->puzzles[i] = puzzle_load(pz);
-            if (pset->puzzles[i] == NULL)
+            return false;
+        }
+    }
+
+    cJSON *fmt_ver = get_cJSON(json, puzzle_json_props[KEY_PSET_FMT_VER]);
+    if (strcmp(fmt_ver->valuestring, JSON_FMT_VER) != 0)
+    {
+        LOGF(LOG_WARNING, 
+             "Invalid JSON format version: Got %s, Expected %s",
+              fmt_ver->valuestring);
+        return false;
+    }
+    return true;
+}
+
+bool is_valid_puzzles(const cJSON *puzzles)
+{
+    assert(puzzles != NULL);
+
+    const cJSON *pz;
+    cJSON_ArrayForEach(pz, puzzles)
+    {
+        if (!cJSON_IsObject(pz))
+        {
+            LOG(LOG_WARNING, "Invalid JSON puzzle object");
+        }
+
+        for (int i = PZ_KEY_START; i < PZ_KEY_END; i++)
+        {
+            if (!is_valid_json_property(pz, puzzle_json_props[i]))
             {
-                for (int k = 0; k < i; k++)
-                {
-                    puzzle_destroy(pset->puzzles[k]);
-                }
-                free(pset);
-                return NULL;
+                return false;
             }
         }
     }
 
-    return pset;
-}
-
-struct puzzle_set *parse_puzzle_set(const char *file_name, enum load_mode mode)
-{
-    char *file_txt = load_file(file_name);
-    if (file_txt == NULL)
-    {
-        return NULL;
-    }
-
-    cJSON *json = cJSON_Parse(file_txt);
-    if (json == NULL)
-    {
-        // @TODO: detailed error message
-        free(file_txt);
-        return NULL;
-    }
-
-    if (!validate_puzzle_set_metadata(json, file_name))
-    {
-        cJSON_Delete(json);
-        free(file_txt);
-        return NULL;
-    }
-
-    if (mode != LOAD_LAZY)
-    {
-        cJSON *puzzles = get_cJSON(json, puzzle_set_attrs[PSET_ATTR_PUZZLES]);
-        if (!validate_puzzles(puzzles, file_name))
-        {
-            cJSON_Delete(json);
-            free(file_txt);
-            return NULL;
-        }
-    }
-
-    struct puzzle_set *puzzle_set = puzzle_set_load(json, file_name, mode);
-    if (puzzle_set == NULL)
-    {
-        cJSON_Delete(json);
-        free(file_txt);
-        return NULL;
-    }
-
-    return puzzle_set;
+    return true;
 }
 

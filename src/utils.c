@@ -60,14 +60,12 @@ void free2d(void **arr, size_t n_rows)
 
 void free_ptr_array(void **arr, size_t n)
 {
-    if (arr == NULL)
+    if (arr != NULL)
     {
-        return;
-    }
-
-    for (size_t i = 0; i < n; i++)
-    {
-        free(arr[i]);
+        for (size_t i = 0; i < n; i++)
+        {
+            free(arr[i]);
+        }
     }
     free(arr);
 }

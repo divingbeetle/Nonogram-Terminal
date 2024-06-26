@@ -64,6 +64,7 @@ void game_state_destroy(struct game_state *gs)
     assert(gs->board_state != NULL);
     assert(gs->puzzle != NULL);
 
+    free(gs->undo_queue);
     free2d((void **)gs->board_state, gs->puzzle->n_rows);
     free(gs);
 }

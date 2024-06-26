@@ -1,7 +1,5 @@
 #include <stdlib.h>
-#include "cJSON/cJSON.h"
 #include "game_control.h"
-#include "loader.h"
 #include "puzzle.h"
 #include "tui.h"
 #include "utils.h"
@@ -51,13 +49,16 @@ int main(void)
     menu_set_configure(mset, config);
 
     bool in_menu = true;
+    struct puzzle *pz;
     while (in_menu)
     {
         int menu_choice = menu_set_get_user_choice(mset);
         switch (menu_choice)
         {
             case MAIN_MENU_NEW_GAME:
-                play(puzzle_get_user_choice(puzzle_set_get_user_choice()));
+                pz = puzzle_get_user_choice(puzzle_set_get_user_choice());
+                play(pz);
+                puzzle_destroy(pz);
                 break;
 
             case MAIN_MENU_CONTINUE:

@@ -51,11 +51,18 @@ struct cell
     int row, col;
 };
 
+enum axis 
+{
+    AXIS_ROW,
+    AXIS_COL
+};
+
 struct puzzle_set *puzzle_set_get_user_choice(void);
 struct puzzle *puzzle_get_user_choice(struct puzzle_set *pset);
 
 struct puzzle_set *puzzle_set_load_from_file(const char *file_name);
 
+void puzzle_destroy(struct puzzle *puzzle);
 static inline int get_row_clueline_size(const struct puzzle *pz)
 {
     return (pz->n_cols + 1) / 2;
