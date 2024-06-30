@@ -17,7 +17,6 @@ enum cell_state
     CELL_TEMP_XMARKED
 };
 
-
 struct game_state 
 {
     const struct puzzle *puzzle;

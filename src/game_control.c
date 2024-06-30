@@ -177,7 +177,6 @@ enum game_return_code run_game_loop(struct game_controller *game)
 {
     assert (game != NULL);
 
-    game->cursor = (struct cell){0, 0};
     for (;;)
     {
         if (game->mode == MODE_NORMAL)
