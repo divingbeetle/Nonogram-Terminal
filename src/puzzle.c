@@ -137,6 +137,7 @@ bool is_valid_puzzle_set_metadata(const cJSON *json);
 bool is_valid_puzzles(const cJSON *puzzles);
 
 struct puzzle *puzzle_create(const cJSON *json);
+
 int **clues_create(const cJSON *json, const struct puzzle *pz, enum axis axis);
 
 struct puzzle_set *puzzle_set_create(const char *file_name, enum load_mode mode);
@@ -144,9 +145,95 @@ void load_puzzle_set_metadata(const cJSON *json, struct puzzle_set *pset);
 
 struct puzzle_set **create_puzzle_set_arr(int *arr_size_out);
 
+bool fread_puzzle(FILE *fp, struct puzzle *pz);
+
+bool is_valid_puzzle(const struct puzzle *pz)
+{
+    // @TODO: Implement
+    return true;
+}
+
 /* Public */
 
-struct puzzle_set *puzzle_set_get_user_choice(void)
+void puzzle_set_destroy(struct puzzle_set *pset)
+{
+    if (pset != NULL)
+    {
+        for (int i = 0; i < pset->num_puzzles; i++)
+        {
+            puzzle_destroy(pset->puzzles[i]);
+        }
+    }
+    free(pset);
+}
+
+struct puzzle *puzzle_create_from_save(void)
+{
+    FILE          *fp = NULL;
+    struct puzzle *pz = NULL;
+
+    pz = malloc(sizeof(struct puzzle));
+    ALLOC_CHECK_RETURN(pz, NULL);
+
+    fp = fopen(SAVE_FILE_NAME, "rb");
+    if (fp == NULL)
+    {
+        LOGF(LOG_ERROR, "Failed to open file: '%s'", SAVE_FILE_NAME);
+        free(pz);
+        return NULL;
+    }
+
+    if (!fread_puzzle(fp, pz))
+    {
+        LOG(LOG_ERROR, "Failed to read puzzle from Save File");
+        free(pz);
+        fclose(fp);
+        return NULL;
+    }
+
+    fclose(fp);
+
+    if (!is_valid_puzzle(pz))
+    {
+        LOG(LOG_ERROR, "Invalid puzzle loaded from Save File");
+        puzzle_destroy(pz);
+        return NULL;
+    }
+
+    return pz;
+}
+
+bool skip_puzzle_from_file(FILE *fp, const struct puzzle *pz)
+{
+    assert(fp != NULL);
+    assert(pz != NULL);
+
+    int offsets[] = 
+    {
+        sizeof(*(pz->title)) * (MAX_PZ_TITLE_LEN + 1),
+        sizeof(*(pz->author)) * (MAX_PZ_AUTHOR_LEN + 1),
+        sizeof(pz->difficulty),
+        sizeof(pz->n_rows),
+        sizeof(pz->n_cols),
+        sizeof(int) * pz->n_rows * get_row_clueline_size(pz),
+        sizeof(int) * pz->n_cols * get_col_clueline_size(pz)
+    };
+
+    int arr_size = sizeof(offsets) / sizeof(*offsets);
+
+    for (int i = 0; i < arr_size; i++)
+    {
+        if (fseek(fp, offsets[i], SEEK_CUR) != 0)
+        {
+            LOG(LOG_ERROR, "Failed to skip puzzle from file");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+struct puzzle_set *puzzle_set_create_from_user_selection(void)
 {
     int n_puzzle_sets;
     struct puzzle_set **puzzle_sets = create_puzzle_set_arr(&n_puzzle_sets);
@@ -193,7 +280,7 @@ struct puzzle_set *puzzle_set_get_user_choice(void)
     return selected_pset;
 }
 
-struct puzzle *puzzle_get_user_choice(struct puzzle_set *pset)
+struct puzzle *select_puzzle_from_set(struct puzzle_set *pset)
 {
     if (pset == NULL) return NULL;
 
@@ -227,15 +314,6 @@ struct puzzle *puzzle_get_user_choice(struct puzzle_set *pset)
     }
 
     struct puzzle *selected_puzzle = pset->puzzles[selected];
-
-    for (int i = 0; i < n_puzzle; i++)
-    {
-        if (i != selected)
-        {
-            free(pset->puzzles[i]);
-        }
-    }
-    free(pset);
 
     return selected_puzzle;
 }
@@ -329,8 +407,8 @@ struct puzzle *puzzle_create(const cJSON *json)
     cJSON *row_clues  = get_cJSON(json, puzzle_json_props[KEY_PZ_ROW_CLUES]);
     cJSON *col_clues  = get_cJSON(json, puzzle_json_props[KEY_PZ_COL_CLUES]);
 
-    strncpy(pz->title,  title->valuestring,  MAX_PZ_TITLE_LEN);
-    strncpy(pz->author, author->valuestring, MAX_PZ_AUTHOR_LEN);
+    strncpy(pz->title,  title->valuestring,  MAX_PZ_TITLE_LEN + 1);
+    strncpy(pz->author, author->valuestring, MAX_PZ_AUTHOR_LEN + 1);
 
     pz->difficulty = difficulty->valueint;
     pz->n_rows     = rows->valueint;
@@ -366,9 +444,9 @@ void load_puzzle_set_metadata(const cJSON *json, struct puzzle_set *pset)
     cJSON *desc      = get_cJSON(json, puzzle_json_props[KEY_PSET_DESC]);
     cJSON *n_puzzles = get_cJSON(json, puzzle_json_props[KEY_PSET_N_PUZZLES]);
 
-    strncpy(pset->format_ver, fmt_ver->valuestring, JSON_FMT_VER_LEN);
-    strncpy(pset->title,      title->valuestring,   MAX_PZ_TITLE_LEN);
-    strncpy(pset->desc,       desc->valuestring,    MAX_PZ_DESC_LEN);
+    strncpy(pset->format_ver, fmt_ver->valuestring, JSON_FMT_VER_LEN + 1);
+    strncpy(pset->title,      title->valuestring,   MAX_PZ_TITLE_LEN + 1);
+    strncpy(pset->desc,       desc->valuestring,    MAX_PZ_DESC_LEN + 1);
     pset->num_puzzles = n_puzzles->valueint;
 }
 
@@ -485,6 +563,48 @@ bool is_valid_puzzles(const cJSON *puzzles)
                 return false;
             }
         }
+    }
+
+    return true;
+}
+
+bool fread_puzzle(FILE *fp, struct puzzle *pz)
+{
+    if (!fread(pz->title, sizeof(char), MAX_PZ_TITLE_LEN + 1, fp)
+        || !fread(pz->author, sizeof(char), MAX_PZ_AUTHOR_LEN + 1, fp)
+        || !fread(&pz->difficulty, sizeof(int), 1, fp)
+        || !fread(&pz->n_rows, sizeof(int), 1, fp)
+        || !fread(&pz->n_cols, sizeof(int), 1, fp))
+    {
+        return false;
+    }
+    pz->title[MAX_PZ_TITLE_LEN]   = '\0';
+    pz->author[MAX_PZ_AUTHOR_LEN] = '\0';
+
+    if (pz->n_rows > MAX_PZ_N_ROWS || pz->n_cols > MAX_PZ_N_COLS
+        || pz->n_cols < 0 || pz->n_rows < 0)
+    {
+        return false;
+    }
+
+    pz->row_clues = (int **)alloc2d(pz->n_rows, 
+                                    get_row_clueline_size(pz), sizeof(int));
+
+    ALLOC_CHECK_RETURN(pz->row_clues, false);
+    pz->col_clues = (int **)alloc2d(pz->n_cols, 
+                                    get_col_clueline_size(pz), sizeof(int));
+    if (pz->col_clues == NULL)
+    {
+        free2d((void **) pz->row_clues, pz->n_rows);
+        return false;
+    }
+
+    int row_clues_size = pz->n_rows * get_row_clueline_size(pz);
+    int col_clues_size = pz->n_cols * get_col_clueline_size(pz);
+    if (!fread(pz->row_clues[0], sizeof(int), row_clues_size, fp)
+        || !fread(pz->col_clues[0], sizeof(int), col_clues_size, fp))
+    {
+        return false;
     }
 
     return true;

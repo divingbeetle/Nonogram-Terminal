@@ -2,6 +2,7 @@
 #define LOADER_H
 
 #include <stdbool.h>
+#include <stdio.h>
 #include "cJSON/cJSON.h"
 
 /**
@@ -13,6 +14,9 @@ struct json_property
     int type;
     int min, max;
 };
+
+
+bool file_exists(const char *file_name);
 
 /**
  * @brief  Loads entire text file into memory

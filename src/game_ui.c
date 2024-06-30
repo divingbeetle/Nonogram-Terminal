@@ -12,7 +12,6 @@
 #define UI_WIN_PADDING 1 
 
 /* Function prototypes */ 
-int game_ui_set_windows(struct game_ui *ui);
 int get_clueline_render_size(const struct puzzle *pz, enum axis axis);
 
 /**
@@ -45,7 +44,10 @@ struct game_ui *game_ui_create(const struct puzzle *pz)
     ALLOC_CHECK_EXIT(ui);
 
     ui->puzzle = pz;
-    game_ui_set_windows(ui);
+    ui->win = NULL;
+    ui->board = NULL;
+    ui->cmd_menu = NULL;
+    /*game_ui_set_windows(ui);*/
     return ui;
 }
 
@@ -55,7 +57,10 @@ void game_ui_destroy(struct game_ui *ui)
     assert(ui->win != NULL);
     assert(ui->board != NULL);
 
-    menu_set_destroy(ui->cmd_menu);
+    // This function touchs menu->param which was stack allocated
+    // Which was temporary solution to creating menu_set 
+    // @TODO: Fix
+    /*menu_set_destroy(ui->cmd_menu);*/
     delwin(ui->board);
     delwin(ui->win);
     free(ui);
@@ -128,7 +133,6 @@ int game_ui_set_windows(struct game_ui *ui)
 
     int win_padding = UI_WIN_PADDING;
 
-
     // @TODO: adjust if other windows/elements are needed
     int left_space   = 0;
     int top_space    = 0;
@@ -166,7 +170,6 @@ int game_ui_set_windows(struct game_ui *ui)
         .x = win_padding * 2 + left_space + row_clues_width + board_width
              + right_space
     };
-
 
     ui->win = newwin(win_size.y, win_size.x, 0, 0);
     ALLOC_CHECK_EXIT(ui->win);

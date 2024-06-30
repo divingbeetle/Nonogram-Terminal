@@ -18,6 +18,14 @@ bool is_valid_property_range(const cJSON *obj, struct json_property prop);
 
 /* Public */
 
+bool file_exists(const char *file_name)
+{
+    FILE *fp = fopen(file_name, "r");
+    if (fp == NULL) return false;
+    fclose(fp);
+    return true;
+}
+
 char *load_file(const char *file_name)
 {
     FILE *fp  = NULL;

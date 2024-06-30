@@ -34,7 +34,7 @@ void set_cell_state(struct game_state *gs,
                     struct cell cell, enum cell_state state);
 
 void game_state_save(const struct game_state *gs);
-struct game_state *game_state_load(void);
+int game_state_load_save(struct game_state *gs);
 
 /**
  * Toggles the cell between given state and empty state.

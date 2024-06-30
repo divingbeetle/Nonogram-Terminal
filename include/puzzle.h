@@ -12,6 +12,8 @@
  *  - Right aligned with 0 padding in a array. 
  *****************************************************************************/
 
+#include <stdbool.h>
+#include <stdio.h>
 #define JSON_FMT_VER "0.2.0"
 #define JSON_FMT_VER_LEN 5
 
@@ -57,12 +59,16 @@ enum axis
     AXIS_COL
 };
 
-struct puzzle_set *puzzle_set_get_user_choice(void);
-struct puzzle *puzzle_get_user_choice(struct puzzle_set *pset);
+struct puzzle_set *puzzle_set_create_from_user_selection(void);
+struct puzzle *select_puzzle_from_set(struct puzzle_set *pset);
+struct puzzle *puzzle_create_from_save(void);
 
-struct puzzle_set *puzzle_set_load_from_file(const char *file_name);
+void puzzle_set_destroy(struct puzzle_set *pset);
 
 void puzzle_destroy(struct puzzle *puzzle);
+
+bool skip_puzzle_from_file(FILE *fp, const struct puzzle *pz);
+
 static inline int get_row_clueline_size(const struct puzzle *pz)
 {
     return (pz->n_cols + 1) / 2;

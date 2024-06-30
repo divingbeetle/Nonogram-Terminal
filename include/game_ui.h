@@ -19,6 +19,7 @@ struct game_ui
 };
 
 struct game_ui *game_ui_create(const struct puzzle *pz);
+int game_ui_set_windows(struct game_ui *ui);
 void game_ui_destroy(struct game_ui *ui);
 
 void highlight_area(struct game_ui *ui, struct cell start, struct cell end, attr_t attr);

@@ -49,20 +49,17 @@ int main(void)
     menu_set_configure(mset, config);
 
     bool in_menu = true;
-    struct puzzle *pz;
     while (in_menu)
     {
         int menu_choice = menu_set_get_user_choice(mset);
         switch (menu_choice)
         {
             case MAIN_MENU_NEW_GAME:
-                pz = puzzle_get_user_choice(puzzle_set_get_user_choice());
-                play(pz);
-                puzzle_destroy(pz);
+                new_game();
                 break;
 
             case MAIN_MENU_CONTINUE:
-                load_and_play();
+                continue_game();
                 break;
 
             case MAIN_MENU_HOW_TO_PLAY:

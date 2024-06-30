@@ -1,12 +1,13 @@
 #include "game_control.h"
+#include "config.h"
 #include "game_core.h"
 #include "game_ui.h"
+#include "loader.h"
+#include "puzzle.h"
 #include "tui.h"
 #include "utils.h"
 
-#define EXIT_GAME -1
-
-enum controler_mode 
+enum controller_mode 
 {
     MODE_NORMAL,
     MODE_VISUAL,
@@ -18,7 +19,7 @@ struct game_controller
     const struct puzzle *puzzle;
     struct game_state *state;
     struct game_ui *ui;
-    enum controler_mode mode;
+    enum controller_mode mode;
     struct cell cursor;
     struct cell selection_pivot; // For visual mode selection area
 };
@@ -51,9 +52,10 @@ char *command_mode_desc[CMD_N] =
 struct game_controller *game_controller_create(const struct puzzle *pz);
 void game_controller_destroy(struct game_controller *game);
 
-int run_game_loop(struct game_controller *game);
+enum game_return_code play(struct game_controller *game);
+enum game_return_code run_game_loop(struct game_controller *game);
 
-int handle_key_input(struct game_controller *game, int key);
+int  handle_key_input(struct game_controller *game, int key);
 bool handle_cursor_movement(struct game_controller *game, int key);
 bool handle_edit(struct game_controller *game, int key);
 bool handle_operation(struct game_controller *game, int key);
@@ -70,53 +72,86 @@ int open_command_mode(struct game_controller *game);
 
 /* Public */
 
-int play(const struct puzzle *pz)
+enum game_return_code new_game(void)
 {
-    assert(pz != NULL);
+    struct puzzle_set      *selected_pset = NULL;
+    struct puzzle          *selected_pz   = NULL;
+    struct game_controller *game          = NULL;
 
-    struct game_controller *game = game_controller_create(pz);
-    display_base_board(game->ui);
-    run_game_loop(game);
-    game_controller_destroy(game);
+    enum game_return_code ret;
 
-    return 0;
-}
-
-int load_and_play(void)
-{
-    struct game_state *gs = game_state_load();
-    if (gs == NULL)
+    if ((selected_pset = puzzle_set_create_from_user_selection()) == NULL)
     {
-        return -1;
+        return GAME_RET_ERROR_LOAD;
     }
 
-    struct game_controller *game = malloc(sizeof(*game));
-    ALLOC_CHECK_EXIT(game);
+    if ((selected_pz = select_puzzle_from_set(selected_pset)) == NULL)
+    {
+        puzzle_set_destroy(selected_pset);
+        return GAME_RET_ERROR_LOAD;
+    }
 
-    struct game_ui *ui    = game_ui_create(gs->puzzle);
+    game = game_controller_create(selected_pz);
+    ret  = play(game);
 
-    game->puzzle = gs->puzzle;
-    game->state  = gs;
-    game->ui     = ui;
-    game->cursor = (struct cell){0, 0};
-    game->mode   = MODE_NORMAL;
-
-    display_base_board(game->ui);
-    run_game_loop(game);
     game_controller_destroy(game);
+    puzzle_set_destroy(selected_pset);
+    return ret;
+}
 
-    return 0;
+enum game_return_code continue_game(void)
+{
+    if (!file_exists(SAVE_FILE_NAME))
+    {
+        // @TODO: might move elsewhere
+        display_notification("No save file found"); 
+        return GAME_RET_ERROR_LOAD;
+    }
+
+    struct puzzle          *pz   = NULL;
+    struct game_controller *game = NULL;
+
+    enum game_return_code ret;
+
+    if ((pz = puzzle_create_from_save()) == NULL)
+    {
+        return GAME_RET_ERROR_LOAD;
+    }
+
+    game = game_controller_create(pz);
+    if (game_state_load_save(game->state) != 0)
+    {
+        game_controller_destroy(game);
+        puzzle_destroy(pz);
+        return GAME_RET_ERROR_LOAD;
+    }
+
+    ret = play(game);
+    game_controller_destroy(game);
+    puzzle_destroy(pz);
+    return ret;
 }
 
 /* Private */
 
+enum game_return_code play(struct game_controller *game)
+{
+    assert(game != NULL);
+
+    game_ui_set_windows(game->ui);
+    display_base_board(game->ui);
+    return run_game_loop(game);
+}
+
 struct game_controller *game_controller_create(const struct puzzle *pz)
 {
+    assert(pz != NULL);
+
     struct game_controller *game = malloc(sizeof(*game));
     ALLOC_CHECK_EXIT(game);
 
     struct game_state *gs = game_state_create(pz);
-    struct game_ui *ui    = game_ui_create(pz);
+    struct game_ui    *ui = game_ui_create(pz);
 
     game->puzzle = pz;
     game->state  = gs;
@@ -138,7 +173,7 @@ void game_controller_destroy(struct game_controller *game)
     free(game);
 }
 
-int run_game_loop(struct game_controller *game)
+enum game_return_code run_game_loop(struct game_controller *game)
 {
     assert (game != NULL);
 
@@ -158,9 +193,9 @@ int run_game_loop(struct game_controller *game)
         int key = wgetch(game->ui->win);
         highlight_area(game->ui, start, end, A_NORMAL);
 
-        if (handle_key_input(game, key) == EXIT_GAME)
+        if (handle_key_input(game, key) == GAME_RET_QUIT)
         {
-            return 0;
+            return GAME_RET_QUIT;
         }
 
         if (game_solved(game->state))
@@ -327,7 +362,7 @@ bool handle_mode_switch(struct game_controller *game, int key)
 int handle_key_input(struct game_controller *game, int key)
 {
     if (key == 'q')
-        return EXIT_GAME;
+        return GAME_RET_QUIT;
 
     if (handle_cursor_movement(game, key))
         return 0;
@@ -426,7 +461,7 @@ int open_command_mode(struct game_controller *game)
             game_state_save(game->state);
             break;
         case CMD_QUIT:
-            return EXIT_GAME;
+            return GAME_RET_QUIT;
             break;
         case MENU_NOT_SELECTED:
             break;
