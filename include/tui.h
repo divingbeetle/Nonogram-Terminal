@@ -17,6 +17,34 @@ struct pos
     int y, x;
 };
 
+enum color_pairs 
+{
+    /* Plain Color Pairs with black background */
+    COLOR_P_DEFAULT,
+    COLOR_P_RED,
+    COLOR_P_GREEN,
+    COLOR_P_YELLOW,
+    COLOR_P_BLUE,
+    COLOR_P_MAGENTA,
+    COLOR_P_CYAN,
+    COLOR_P_GREY,
+    COLOR_P_N_PLAIN_PAIRS,
+
+    /* Highlighted color pairs */
+    COLOR_P_DEFAULT_HIGHLIGHTED,
+    COLOR_P_RED_HIGHLIGHTED,
+    COLOR_P_GREEN_HIGHLIGHTED,
+    COLOR_P_YELLOW_HIGHLIGHTED,
+    COLOR_P_BLUE_HIGHLIGHTED,
+    COLOR_P_MAGENTA_HIGHLIGHTED,
+    COLOR_P_CYAN_HIGHLIGHTED,
+    COLOR_P_N_PAIRS
+};
+
+#define COLOR_GREY 8
+#define COLOR_DARK_GREY 238
+
+
 /**
  * Initialize/configure the ncurses screen.
  *  - Must be called before any other tui functions.
@@ -31,6 +59,9 @@ void print_in_middle(WINDOW *win, const char *string);
  *  - Message displayed until user presses any key.
  */
 void display_notification(const char *msg);
+
+void color_pairs_test(void);
+void color_test(void);
 
 /* ---- Menu ---- */ 
 

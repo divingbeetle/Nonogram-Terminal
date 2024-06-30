@@ -1,5 +1,6 @@
 #include "game_ui.h"
 #include "game_control.h"
+#include "tui.h"
 #include "utils.h"
 #include <curses.h>
 
@@ -9,7 +10,11 @@
 #define CELL_WIDTH 4
 #define CELL_HEIGHT 2
 
-#define UI_WIN_PADDING 1 
+#define UI_WIN_PADDING 1
+
+#define NTERM_COLOR_FILLED       COLOR_P_BLUE
+#define NTERM_COLOR_CLUE_CORRECT COLOR_P_GREEN_HIGHLIGHTED
+#define NTERM_COLOR_DEFAULT      COLOR_P_DEFAULT
 
 /* Function prototypes */ 
 int get_clueline_render_size(const struct puzzle *pz, enum axis axis);
@@ -33,7 +38,7 @@ void draw_board_state(struct game_ui *ui, const struct game_state *state);
 void colorize_correct_rows(struct game_ui *ui, const struct game_state *state);
 void colorize_correct_cols(struct game_ui *ui, const struct game_state *state);
 void draw_cell(struct game_ui *ui, struct cell cell, enum cell_state state);
-void highlight_cell(struct game_ui *ui, struct cell cell, attr_t attr);
+void highlight_cell(struct game_ui *ui, struct cell cell, short color_p);
 
 /* Public */ 
 struct game_ui *game_ui_create(const struct puzzle *pz)
@@ -357,12 +362,12 @@ void draw_cell(struct game_ui *ui, struct cell cell, enum cell_state state)
     // Altchar
     if (state == CELL_FILLED)
     {
-        wattron(ui->board, A_REVERSE);
+        wattron(ui->board, COLOR_PAIR(NTERM_COLOR_FILLED));
         for (int dx = 1; dx < CELL_WIDTH; dx++)
         {
             mvwaddch(ui->board, cell_pos.y + 1, cell_pos.x + dx, ACS_CKBOARD);
         }
-        wattroff(ui->board, A_REVERSE);
+        wattroff(ui->board, COLOR_PAIR(NTERM_COLOR_FILLED));
         return;
     }
 
@@ -387,11 +392,10 @@ void draw_cell(struct game_ui *ui, struct cell cell, enum cell_state state)
             cell_state_str = "   ";
             break;
     }
-
     mvwprintw(ui->board, cell_pos.y + 1, cell_pos.x + 1, "%s", cell_state_str);
 }
 
-void highlight_cell(struct game_ui *ui, struct cell cell, attr_t attr)
+void highlight_cell(struct game_ui *ui, struct cell cell, short color_p)
 {
     assert(ui != NULL);
     assert(ui->board != NULL);
@@ -401,7 +405,7 @@ void highlight_cell(struct game_ui *ui, struct cell cell, attr_t attr)
     {
         for (int dx = 0; dx <= CELL_WIDTH; dx++)
         {
-            attr_t curr_attr = attr;
+            attr_t curr_attr = A_NORMAL;
             // Altcharset/normal char should be handled differently
             if (mvwinch(ui->board, curr.y + dy, curr.x + dx) & A_ALTCHARSET)
             {
@@ -409,7 +413,7 @@ void highlight_cell(struct game_ui *ui, struct cell cell, attr_t attr)
             }
 
             mvwchgat(ui->board, 
-                     curr.y + dy, curr.x + dx, 1, curr_attr, 0, NULL);
+                     curr.y + dy, curr.x + dx, 1, curr_attr, color_p, NULL);
         }
     }
 }
@@ -432,13 +436,14 @@ void colorize_correct_rows(struct game_ui *ui, const struct game_state *state)
     int left_padding = UI_WIN_PADDING;
     for (int i = 0; i < ui->puzzle->n_rows; i++)
     {
-        attr_t attr = validate_axis(state, AXIS_ROW, i) ? A_REVERSE : A_NORMAL;
+        /*attr_t attr = validate_axis(state, AXIS_ROW, i) ? A_REVERSE : A_NORMAL;*/
+        short color_p = validate_axis(state, AXIS_ROW, i) ? NTERM_COLOR_CLUE_CORRECT : NTERM_COLOR_DEFAULT;
 
         struct cell curr   = {i, 0};
         struct pos win_pos = cell_to_win_pos(ui, curr);
         mvwchgat(ui->win, 
                  win_pos.y + 1, left_padding, 
-                 win_pos.x - left_padding, attr, 0, NULL);
+                 win_pos.x - left_padding, A_NORMAL, color_p, NULL);
     }
 }
 void colorize_correct_cols(struct game_ui *ui, const struct game_state *state)
@@ -446,13 +451,13 @@ void colorize_correct_cols(struct game_ui *ui, const struct game_state *state)
     int top_padding = UI_WIN_PADDING;
     for (int j = 0; j < ui->puzzle->n_cols; j++)
     {
-        attr_t attr = validate_axis(state, AXIS_COL, j) ? A_REVERSE : A_NORMAL;
+        short color_p = validate_axis(state, AXIS_COL, j) ? NTERM_COLOR_CLUE_CORRECT : NTERM_COLOR_DEFAULT;
 
         struct cell curr   = {0, j};
         struct pos win_pos = cell_to_win_pos(ui, curr);
         for (int y = top_padding; y < win_pos.y; y++)
         {
-            mvwchgat(ui->win, y, win_pos.x + 1, 3, attr, 0, NULL);
+            mvwchgat(ui->win, y, win_pos.x + 1, 3, A_NORMAL, color_p, NULL);
         }
     }
 }

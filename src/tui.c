@@ -16,6 +16,15 @@ const struct menu_config menu_config_default =
 void end_screen(void);
 ITEM **menu_items_create(const struct menu_param *params);
 
+void init_colors(void);
+void set_custom_colors(void);
+void set_color_pairs(void);
+
+/**
+ * @param  color Ncurses color number to set
+ * @param  r, g, b RGB values to set the color (0-255)
+ */
+void set_color_rgb(short color, short r, short g, short b);
 bool enough_screen_size(struct pos required_size)
 {
     struct pos screen_size;
@@ -24,6 +33,28 @@ bool enough_screen_size(struct pos required_size)
 }
 
 /* Public */
+
+
+void color_pairs_test(void)
+{
+    for (int i = 0; i < COLOR_P_N_PAIRS; i++)
+    {
+        wattron(stdscr, COLOR_PAIR(i));
+        mvprintw(i, 0, "Color pair %d", i);
+        wattroff(stdscr, COLOR_PAIR(i));
+    }
+}
+void color_test(void)
+{
+    int n_colors = COLORS;
+    for (int i = 0; i < n_colors; i++)
+    {
+        init_pair(i, i, COLOR_BLACK);
+        wattron(stdscr, COLOR_PAIR(i));
+        mvprintw(i, 0, "Color %d", i);
+        wattroff(stdscr, COLOR_PAIR(i));
+    }
+}
 
 void init_screen(void)
 {
@@ -34,6 +65,7 @@ void init_screen(void)
     noecho();
     keypad(stdscr, true);
     curs_set(0);
+    init_colors();
 }
 
 void print_in_middle(WINDOW *win, const char *string)
@@ -88,6 +120,7 @@ void menu_set_configure(struct menu_set *mset, const struct menu_config config)
     // set_menu_fore();
     // set_menu_back();
     set_menu_mark(mset->menu, " > ");
+    set_menu_fore(mset->menu, COLOR_PAIR(COLOR_P_DEFAULT_HIGHLIGHTED));
 
     struct pos req_size;
     scale_menu(mset->menu, &req_size.y, &req_size.x);
@@ -159,6 +192,105 @@ void end_screen(void)
     endwin();
 }
 
+void set_custom_colors(void)
+{
+    set_color_rgb(COLOR_BLACK, 30, 33, 34);
+    set_color_rgb(COLOR_RED, 236, 107, 100);
+    set_color_rgb(COLOR_GREEN, 169, 182, 101);
+    set_color_rgb(COLOR_YELLOW, 224, 192, 128);
+    set_color_rgb(COLOR_BLUE, 102, 144, 235);
+    set_color_rgb(COLOR_MAGENTA, 211, 134, 155);
+    set_color_rgb(COLOR_CYAN, 125, 174, 163);
+    set_color_rgb(COLOR_WHITE, 192, 177, 150);
+    if (COLORS >= 8)
+    {
+        set_color_rgb(COLOR_GREY, 153, 153, 153);
+        set_color_rgb(COLOR_RED + 8, 255, 0, 0);
+        set_color_rgb(COLOR_GREEN + 8, 0, 255, 0);
+        set_color_rgb(COLOR_YELLOW + 8, 255, 255, 0);
+        set_color_rgb(COLOR_BLUE + 8, 0, 0, 255);
+        set_color_rgb(COLOR_MAGENTA + 8, 255, 0, 255);
+        set_color_rgb(COLOR_CYAN + 8, 0, 255, 255);
+        set_color_rgb(COLOR_WHITE + 8, 235, 219, 178);
+    }
+    if (COLORS >= 16)
+    {
+        set_color_rgb(COLOR_DARK_GREY, 54, 57, 58);
+    }
+}
+
+void set_color_rgb(short color, short r, short g, short b)
+{
+    // ncurses init_color() takes 0-1000 color values 
+    assert(r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255);
+
+    float r_ratio = ((float)r) / 255.0;
+    float g_ratio = ((float)g) / 255.0;
+    float b_ratio = ((float)b) / 255.0;
+
+    r = (short)(r_ratio * 1000.0);
+    g = (short)(g_ratio * 1000.0);
+    b = (short)(b_ratio * 1000.0);
+    init_color(color, r, g, b);
+}
+
+void set_color_pairs(void)
+{
+    init_pair(COLOR_P_DEFAULT, COLOR_WHITE, COLOR_BLACK);
+    init_pair(COLOR_P_RED, COLOR_RED, COLOR_BLACK);
+    init_pair(COLOR_P_GREEN, COLOR_GREEN, COLOR_BLACK);
+    init_pair(COLOR_P_YELLOW, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(COLOR_P_BLUE, COLOR_BLUE, COLOR_BLACK);
+    init_pair(COLOR_P_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
+    init_pair(COLOR_P_CYAN, COLOR_CYAN, COLOR_BLACK);
+
+    if (COLORS >= 255)
+    {
+        init_pair(COLOR_P_DEFAULT_HIGHLIGHTED, COLOR_WHITE, COLOR_DARK_GREY);
+        init_pair(COLOR_P_RED_HIGHLIGHTED, COLOR_RED, COLOR_DARK_GREY);
+        init_pair(COLOR_P_GREEN_HIGHLIGHTED, COLOR_GREEN, COLOR_DARK_GREY);
+        init_pair(COLOR_P_YELLOW_HIGHLIGHTED, COLOR_YELLOW, COLOR_DARK_GREY);
+        init_pair(COLOR_P_BLUE_HIGHLIGHTED, COLOR_BLUE, COLOR_DARK_GREY);
+        init_pair(COLOR_P_MAGENTA_HIGHLIGHTED, COLOR_MAGENTA, COLOR_DARK_GREY);
+        init_pair(COLOR_P_CYAN_HIGHLIGHTED, COLOR_CYAN, COLOR_DARK_GREY);
+    }
+    else if (COLORS >= 16)
+    {
+        init_pair(COLOR_P_DEFAULT_HIGHLIGHTED, COLOR_BLACK, COLOR_WHITE);
+        init_pair(COLOR_P_RED_HIGHLIGHTED, COLOR_BLACK, COLOR_RED);
+        init_pair(COLOR_P_GREEN_HIGHLIGHTED, COLOR_BLACK, COLOR_GREEN);
+        init_pair(COLOR_P_YELLOW_HIGHLIGHTED, COLOR_BLACK, COLOR_YELLOW);
+        init_pair(COLOR_P_BLUE_HIGHLIGHTED, COLOR_BLACK, COLOR_BLUE);
+        init_pair(COLOR_P_MAGENTA_HIGHLIGHTED, COLOR_BLACK, COLOR_MAGENTA);
+        init_pair(COLOR_P_CYAN_HIGHLIGHTED, COLOR_BLACK, COLOR_CYAN);
+        init_pair(COLOR_P_GREY, COLOR_GREY, COLOR_BLACK);
+    }
+    else 
+    {
+    }
+
+}
+
+void init_colors(void)
+{
+    if (!has_colors())
+    {
+        LOG(LOG_WARNING, "Terminal does not support colors");
+        return;
+    }
+
+    start_color();
+    LOGF(LOG_INFO , "Colors: %d", COLORS);
+    if (can_change_color())
+    {
+        LOG(LOG_INFO, "Can change colors");
+        set_custom_colors();
+    }
+    assume_default_colors(COLOR_WHITE, COLOR_BLACK);
+
+    set_color_pairs();
+}
+
 ITEM **menu_items_create(const struct menu_param *params)
 {
     ITEM **items = calloc(params->n_choices + 1, sizeof(ITEM *));
@@ -193,3 +325,4 @@ ITEM **menu_items_create(const struct menu_param *params)
 
     return items;
 }
+

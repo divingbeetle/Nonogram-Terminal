@@ -75,6 +75,15 @@ int main(void)
                 break;
 
             case MAIN_MENU_DEBUG:
+                color_pairs_test();
+                refresh();
+                getch();
+                clear();
+
+                color_test();
+                refresh();
+                getch();
+                clear();
                 break;
 
             case MENU_NOT_SELECTED:

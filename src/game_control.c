@@ -187,10 +187,10 @@ enum game_return_code run_game_loop(struct game_controller *game)
         struct cell start = selection_start(game);
         struct cell end   = selection_end(game);
 
-        highlight_area(game->ui, start, end, A_REVERSE);
+        highlight_area(game->ui, start, end, COLOR_P_DEFAULT_HIGHLIGHTED);
         display_game_state(game->ui, game->state);
         int key = wgetch(game->ui->win);
-        highlight_area(game->ui, start, end, A_NORMAL);
+        highlight_area(game->ui, start, end, COLOR_P_DEFAULT);
 
         if (handle_key_input(game, key) == GAME_RET_QUIT)
         {
