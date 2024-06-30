@@ -55,7 +55,7 @@ void free2d(void **arr, size_t n_rows)
     {
         free(arr[0]);
     }
-    free(arr);
+    free(arr); arr = NULL;
 }
 
 void free_ptr_array(void **arr, size_t n)
@@ -67,7 +67,7 @@ void free_ptr_array(void **arr, size_t n)
             free(arr[i]);
         }
     }
-    free(arr);
+    free(arr); arr = NULL;
 }
 
 /* ---- LOGGING ---- */

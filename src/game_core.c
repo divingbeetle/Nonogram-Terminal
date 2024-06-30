@@ -27,6 +27,7 @@ struct undo_queue
 /* Function prototypes */ 
 
 struct undo_queue *undo_queue_create(void);
+void undo_queue_destroy(struct undo_queue *q);
 void undo_queue_push(struct undo_queue *q, struct undo_entry entry);
 
 /**
@@ -53,21 +54,22 @@ struct game_state *game_state_create(const struct puzzle *pz)
     struct game_state *gs = malloc(sizeof(struct game_state));
     ALLOC_CHECK_EXIT(gs);
 
-    gs->puzzle      = pz;
-    gs->board_state = board_state_create(pz);
-    gs->undo_queue  = undo_queue_create();
+    gs->puzzle        = pz;
+    gs->board_state   = board_state_create(pz);
+    gs->board_capture = NULL;
+    gs->undo_queue    = undo_queue_create();
     return gs;
 }
 
 void game_state_destroy(struct game_state *gs)
 {
-    assert(gs != NULL);
-    assert(gs->board_state != NULL);
-    assert(gs->puzzle != NULL);
-
-    free(gs->undo_queue);
-    free2d((void **)gs->board_state, gs->puzzle->n_rows);
-    free(gs);
+    if (gs != NULL)
+    {
+        undo_queue_destroy(gs->undo_queue);
+        free2d((void **)gs->board_capture, gs->puzzle->n_rows);
+        free2d((void **)gs->board_state, gs->puzzle->n_rows);
+    }
+    free(gs); gs = NULL;
 }
 
 void set_cell_state(struct game_state *gs, 
@@ -432,6 +434,11 @@ struct undo_queue *undo_queue_create(void)
     struct undo_queue *q = calloc(1, sizeof(struct undo_queue));
     ALLOC_CHECK_EXIT(q);
     return q;
+}
+
+void undo_queue_destroy(struct undo_queue *q)
+{
+    free(q); q = NULL;
 }
 
 void undo_queue_push(struct undo_queue *q, struct undo_entry entry)

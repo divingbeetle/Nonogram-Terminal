@@ -164,13 +164,13 @@ struct game_controller *game_controller_create(const struct puzzle *pz)
 
 void game_controller_destroy(struct game_controller *game)
 {
-    assert(game != NULL);
-    assert(game->state != NULL);
-    assert(game->ui != NULL);
+    if (game != NULL)
+    {
+        game_state_destroy(game->state);
+        game_ui_destroy(game->ui);
+    }
 
-    game_state_destroy(game->state);
-    game_ui_destroy(game->ui);
-    free(game);
+    free(game); game = NULL;
 }
 
 enum game_return_code run_game_loop(struct game_controller *game)

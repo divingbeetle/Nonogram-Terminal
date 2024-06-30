@@ -164,7 +164,7 @@ void puzzle_set_destroy(struct puzzle_set *pset)
             puzzle_destroy(pset->puzzles[i]);
         }
     }
-    free(pset);
+    free(pset); pset = NULL;
 }
 
 struct puzzle *puzzle_create_from_save(void)
@@ -325,7 +325,7 @@ void puzzle_destroy(struct puzzle *puzzle)
         free2d((void **) puzzle->row_clues, puzzle->n_rows);
         free2d((void **) puzzle->col_clues, puzzle->n_cols);
     }
-    free(puzzle);
+    free(puzzle); puzzle = NULL;
 }
 
 /* Private */ 
@@ -497,14 +497,7 @@ struct puzzle_set *puzzle_set_create(const char *file_name, enum load_mode mode)
 
 cleanup:
     cJSON_Delete(json);
-    if (pset != NULL)
-    {
-        for (int i = 0; i < n_puzzles_created; i++)
-        {
-            puzzle_destroy(pset->puzzles[i]);
-        }
-        free(pset);
-    }
+    if (pset) puzzle_set_destroy(pset);
     return NULL;
 }
 
