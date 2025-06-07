@@ -1,6 +1,7 @@
 #include "tui_menu.h"
 #include "tui.h"
 #include "utils.h"
+#include <string.h>
 
 #define MENU_CURSOR_MARK     " > "
 #define MENU_CURSOR_MARK_LEN 3
@@ -43,7 +44,7 @@ void run_item_term_hook_list(MENU *menu);
 
 void menu_hook_show_title(MENU *menu);
 void menu_hook_show_border(MENU *menu);
-
+void menu_hook_show_description(MENU *menu);
 void menu_hook_clean_menu(MENU *menu);
 
 /* Public */
@@ -68,9 +69,12 @@ MENU *menu_create(char **choices, char **descriptions, int n_choices)
     set_item_term(menu, run_item_term_hook_list);
 
     // Options
-    menu_opts_off(menu, O_SHOWDESC);
+    menu_opts_off(menu, O_SHOWDESC);  // Disable default description display use manual hook
     set_menu_mark(menu, MENU_CURSOR_MARK);
     set_menu_fore(menu, COLOR_PAIR(COLOR_P_YELLOW));
+
+    // Add hook to show description when item is selected
+    add_hook(&data->item_init_hook_list, menu_hook_show_description);
 
     WINDOW *win = newwin(0, 0, 0, 0);
     ALLOC_CHECK_EXIT(win);
@@ -99,6 +103,18 @@ void menu_destroy(MENU *menu)
 
     free_menu(menu);
     menu = NULL;
+}
+
+void menu_set_main_window(MENU *menu, WINDOW *win)
+{
+    assert(menu != NULL);
+    assert(win != NULL);
+
+    set_menu_win(menu, win);
+    adjust_menu_size(menu);
+
+    // Show description for the initially selected item
+    menu_hook_show_description(menu);
 }
 
 void menu_set_padding(MENU *menu, struct directional pad)
@@ -131,10 +147,12 @@ int menu_get_user_input(MENU *menu)
         case KEY_DOWN:
         case 'j':
             menu_driver(menu, REQ_DOWN_ITEM);
+            menu_hook_show_description(menu);
             break;
         case KEY_UP:
         case 'k':
             menu_driver(menu, REQ_UP_ITEM);
+            menu_hook_show_description(menu);
             break;
         default:
             break;
@@ -179,12 +197,13 @@ void menu_set_box(MENU *menu)
 
     struct directional box_pad = {
         .top    = 1,
-        .bottom = 1,
+        .bottom = 3, // space for separation line + description + border
         .left   = 1,
-        .right  = 2 // Extra space for balance with selection mark
+        .right  = 3 // Extra space for balance with selection mark + description
     };
     menu_add_padding(menu, box_pad);
     add_hook(&data->menu_init_hook_list, menu_hook_show_border);
+    add_hook(&data->item_init_hook_list, menu_hook_show_description);
 }
 
 /* Private */
@@ -296,7 +315,8 @@ void adjust_menu_size(MENU *menu)
     struct directional padding  = menu_get_data(menu)->padding;
     struct pos         req_size = POS_ZERO;
 
-    req_size.x = padding.left + menu->itemlen + padding.right;
+    req_size.x =
+        padding.left + MAX(menu->itemlen, menu->desclen) + padding.right;
     req_size.y = padding.top + menu->nitems + padding.bottom;
 
     struct pos win_size = get_window_size(menu_win(menu));
@@ -325,6 +345,30 @@ void run_item_term_hook_list(MENU *menu)
     run_hook_list(menu_get_data(menu)->item_term_hook_list, menu);
 }
 
+void menu_hook_show_description(MENU *menu)
+{
+    WINDOW *win     = menu_win(menu);
+    ITEM   *current = current_item(menu);
+
+    int win_height = getmaxy(win);
+    int win_width  = getmaxx(win);
+    int status_y   = win_height - 2;
+
+    // Clear status bar
+    mvwhline(win, status_y, 1, ' ', win_width - 2);
+
+    if (current && item_description(current))
+    {
+        // separator line
+        mvwhline(win, status_y - 1, 1, ACS_HLINE, win_width - 2);
+
+        wattron(win, COLOR_PAIR(COLOR_P_YELLOW) | A_DIM);
+        mvwprintw(win, status_y, 2, "%s", item_description(current));
+        wattroff(win, COLOR_PAIR(COLOR_P_YELLOW) | A_DIM);
+    }
+
+    wrefresh(win);
+}
 void menu_hook_clean_menu(MENU *menu)
 {
     WINDOW *win = menu_win(menu);
