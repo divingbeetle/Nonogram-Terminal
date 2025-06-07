@@ -41,6 +41,7 @@ struct puzzle
 {
     char title[MAX_PZ_TITLE_LEN + 1];
     char author[MAX_PZ_AUTHOR_LEN + 1];
+    char desc[MAX_PZ_DESC_LEN + 1];
     int difficulty;
     int n_rows;
     int n_cols;

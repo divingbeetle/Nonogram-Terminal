@@ -286,7 +286,13 @@ struct puzzle *select_puzzle_from_set(struct puzzle_set *pset)
         choices[i] = pset->puzzles[i]->title;
     }
 
-    MENU *menu = menu_create(choices, NULL, n_puzzle);
+    char *descriptions[n_puzzle];
+    for (int i = 0; i < n_puzzle; i++)
+    {
+        descriptions[i] = pset->puzzles[i]->desc;
+    }
+
+    MENU *menu = menu_create(choices, descriptions, n_puzzle);
 
     menu_set_box(menu);
     menu_set_title(menu, "Choose a puzzle");
@@ -415,6 +421,9 @@ struct puzzle *puzzle_create(const cJSON *json)
         free(pz);
         return NULL;
     }
+
+    sprintf(pz->desc, "%dx%d | Difficulty: %d | Author: %s",
+            pz->n_rows, pz->n_cols, pz->difficulty, pz->author);
 
     return pz;
 }
