@@ -3,7 +3,6 @@
 #include "tui_menu.h"
 #include "utils.h"
 #include <menu.h>
-#include <stdlib.h>
 
 #define TITLE_TEXT_HEIGHT 20
 #define TITLE_TEXT_WIDTH  88
@@ -92,6 +91,16 @@ char *main_menu_choices[MAIN_MENU_N_CHOICES] =
     [MAIN_MENU_DEBUG]       = "DEBUG"
 };
 
+char *main_menu_descriptions[MAIN_MENU_N_CHOICES] = 
+{
+    [MAIN_MENU_NEW_GAME]    = "Start a new game",
+    [MAIN_MENU_CONTINUE]    = "Continue from save file",
+    [MAIN_MENU_HOW_TO_PLAY] = "Learn how to play",
+    [MAIN_MENU_SETTINGS]    = "Change game settings",
+    [MAIN_MENU_EXIT]        = "Exit game",
+    [MAIN_MENU_DEBUG]       = "Debug "
+};
+
 char *main_menu_title = "Main Menu";
 
 int main(void)
@@ -104,7 +113,7 @@ int main(void)
     getch();
     clear();
 
-    MENU *main_menu = menu_create(main_menu_choices, NULL, MAIN_MENU_N_CHOICES);
+    MENU *main_menu = menu_create(main_menu_choices, main_menu_descriptions, MAIN_MENU_N_CHOICES);
     menu_set_box(main_menu);
     menu_set_title(main_menu, main_menu_title);
 
