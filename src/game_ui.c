@@ -177,6 +177,7 @@ int game_ui_set_windows(struct game_ui *ui)
     };
 
     ui->win = newwin(win_size.y, win_size.x, 0, 0);
+    keypad(ui->win, TRUE);
     ALLOC_CHECK_EXIT(ui->win);
 
     ui->board = derwin(ui->win, board_height, board_width, 
