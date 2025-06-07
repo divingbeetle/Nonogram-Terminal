@@ -5,6 +5,7 @@
 #include "loader.h"
 #include "puzzle.h"
 #include "tui.h"
+#include "tui_menu.h"
 #include "utils.h"
 
 enum controller_mode 
@@ -275,7 +276,7 @@ bool handle_edit(struct game_controller *game, int key)
         case 'x':
             new_state = CELL_XMARKED;
             break;
-        // Shift + key for temprorary marks
+        // Shift + key for temporary marks
         case 'F':
             new_state = CELL_TEMP_FILLED;
             break;
@@ -439,9 +440,9 @@ struct cell selection_end(struct game_controller *game)
 
 int open_command_mode(struct game_controller *game)
 {
-    int cmd_choice = menu_set_get_user_choice(game->ui->cmd_menu);
-    wclear(game->ui->cmd_menu->win);
-    wrefresh(game->ui->cmd_menu->win);
+    post_menu(game->ui->cmd_menu);
+    int cmd_choice = menu_get_user_choice(game->ui->cmd_menu);
+    unpost_menu(game->ui->cmd_menu);
 
     switch (cmd_choice)
     {

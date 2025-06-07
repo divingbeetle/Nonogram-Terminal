@@ -5,10 +5,10 @@
 #include "config.h"
 #include "loader.h"
 #include "puzzle.h"
-#include "tui.h"
+#include "tui_menu.h"
 #include "utils.h"
 
-enum load_mode 
+enum load_mode
 {
     LOAD_METADATA_ONLY,
     LOAD_ALL
@@ -16,7 +16,7 @@ enum load_mode
 
 /* As of ver 0.2.0 */
 
-enum puzzle_json_key 
+enum puzzle_json_key
 {
     // Puzzle Set keys
     KEY_PSET_FMT_VER,
@@ -140,7 +140,8 @@ struct puzzle *puzzle_create(const cJSON *json);
 
 int **clues_create(const cJSON *json, const struct puzzle *pz, enum axis axis);
 
-struct puzzle_set *puzzle_set_create(const char *file_name, enum load_mode mode);
+struct puzzle_set      *
+puzzle_set_create(const char *file_name, enum load_mode mode);
 void load_puzzle_set_metadata(const cJSON *json, struct puzzle_set *pset);
 
 struct puzzle_set **create_puzzle_set_arr(int *arr_size_out);
@@ -164,7 +165,8 @@ void puzzle_set_destroy(struct puzzle_set *pset)
             puzzle_destroy(pset->puzzles[i]);
         }
     }
-    free(pset); pset = NULL;
+    free(pset);
+    pset = NULL;
 }
 
 struct puzzle *puzzle_create_from_save(void)
@@ -208,16 +210,14 @@ bool skip_puzzle_from_file(FILE *fp, const struct puzzle *pz)
     assert(fp != NULL);
     assert(pz != NULL);
 
-    int offsets[] = 
-    {
+    int offsets[] = {
         sizeof(*(pz->title)) * (MAX_PZ_TITLE_LEN + 1),
         sizeof(*(pz->author)) * (MAX_PZ_AUTHOR_LEN + 1),
         sizeof(pz->difficulty),
         sizeof(pz->n_rows),
         sizeof(pz->n_cols),
         sizeof(int) * pz->n_rows * get_row_clueline_size(pz),
-        sizeof(int) * pz->n_cols * get_col_clueline_size(pz)
-    };
+        sizeof(int) * pz->n_cols * get_col_clueline_size(pz)};
 
     int arr_size = sizeof(offsets) / sizeof(*offsets);
 
@@ -235,7 +235,7 @@ bool skip_puzzle_from_file(FILE *fp, const struct puzzle *pz)
 
 struct puzzle_set *puzzle_set_create_from_user_selection(void)
 {
-    int n_puzzle_sets;
+    int                 n_puzzle_sets;
     struct puzzle_set **puzzle_sets = create_puzzle_set_arr(&n_puzzle_sets);
     if (puzzle_sets == NULL) return NULL;
 
@@ -251,22 +251,15 @@ struct puzzle_set *puzzle_set_create_from_user_selection(void)
         descriptions[i] = puzzle_sets[i]->desc;
     }
 
-    struct menu_param param = 
-    {
-        .title = "Choose a puzzle set",
-        .choices = choices,
-        .n_choices = n_puzzle_sets,
-        .descriptions = descriptions,
-        .start = {0, 0},
-        .size = {0, 0}
-    };
+    MENU *menu = menu_create(choices, descriptions, n_puzzle_sets);
 
-    struct menu_config config = menu_config_default;
-    struct menu_set *mset = menu_set_create(&param);
-    menu_set_configure(mset, config); 
+    menu_set_box(menu);
+    menu_set_title(menu, "Choose a puzzle set");
 
-    int selected = menu_set_get_user_choice(mset);
-    menu_set_destroy(mset);
+    post_menu(menu);
+    int selected = menu_get_user_choice(menu);
+    unpost_menu(menu);
+    menu_destroy(menu);
     if (selected == MENU_NOT_SELECTED)
     {
         free_ptr_array((void **) puzzle_sets, n_puzzle_sets);
@@ -274,7 +267,8 @@ struct puzzle_set *puzzle_set_create_from_user_selection(void)
     }
 
     struct puzzle_set *selected_pset;
-    selected_pset = puzzle_set_create(puzzle_sets[selected]->file_name, LOAD_ALL);
+    selected_pset =
+        puzzle_set_create(puzzle_sets[selected]->file_name, LOAD_ALL);
     free_ptr_array((void **) puzzle_sets, n_puzzle_sets);
 
     return selected_pset;
@@ -292,22 +286,15 @@ struct puzzle *select_puzzle_from_set(struct puzzle_set *pset)
         choices[i] = pset->puzzles[i]->title;
     }
 
-    struct menu_param param = 
-    {
-        .title = "Choose a puzzle set",
-        .choices = choices,
-        .n_choices = n_puzzle,
-        .descriptions = NULL,
-        .start = {0, 0},
-        .size = {0, 0}
-    };
+    MENU *menu = menu_create(choices, NULL, n_puzzle);
 
-    struct menu_config config = menu_config_default;
-    struct menu_set *mset = menu_set_create(&param);
-    menu_set_configure(mset, config); 
+    menu_set_box(menu);
+    menu_set_title(menu, "Choose a puzzle");
 
-    int selected = menu_set_get_user_choice(mset);
-    menu_set_destroy(mset);
+    post_menu(menu);
+    int selected = menu_get_user_choice(menu);
+    unpost_menu(menu);
+    menu_destroy(menu);
     if (selected == MENU_NOT_SELECTED)
     {
         return NULL;
@@ -325,10 +312,11 @@ void puzzle_destroy(struct puzzle *puzzle)
         free2d((void **) puzzle->row_clues, puzzle->n_rows);
         free2d((void **) puzzle->col_clues, puzzle->n_cols);
     }
-    free(puzzle); puzzle = NULL;
+    free(puzzle);
+    puzzle = NULL;
 }
 
-/* Private */ 
+/* Private */
 
 struct puzzle_set **create_puzzle_set_arr(int *arr_size_out)
 {
@@ -371,10 +359,9 @@ int **clues_create(const cJSON *json, const struct puzzle *pz, enum axis axis)
     assert(json != NULL);
     assert(pz != NULL);
 
-    int axis_size = (axis == AXIS_ROW) ? pz->n_rows : pz->n_cols;
-    int clueline_size = (axis == AXIS_ROW) 
-                         ? get_row_clueline_size(pz) 
-                         : get_col_clueline_size(pz);
+    int axis_size     = (axis == AXIS_ROW) ? pz->n_rows : pz->n_cols;
+    int clueline_size = (axis == AXIS_ROW) ? get_row_clueline_size(pz)
+                                           : get_col_clueline_size(pz);
 
     int **clues = (int **) calloc2d(axis_size, clueline_size, sizeof(int));
     ALLOC_CHECK_RETURN(clues, NULL);
@@ -383,8 +370,8 @@ int **clues_create(const cJSON *json, const struct puzzle *pz, enum axis axis)
     for (int i = 0; i < axis_size; i++)
     {
         cJSON *clues_json = cJSON_GetArrayItem(json, i);
-        int arr_size = cJSON_GetArraySize(clues_json);
-        int start = clueline_size - arr_size;
+        int    arr_size   = cJSON_GetArraySize(clues_json);
+        int    start      = clueline_size - arr_size;
         for (int k = 0; k < arr_size; k++)
         {
             clues[i][start + k] = cJSON_GetArrayItem(clues_json, k)->valueint;
@@ -407,7 +394,7 @@ struct puzzle *puzzle_create(const cJSON *json)
     cJSON *row_clues  = get_cJSON(json, puzzle_json_props[KEY_PZ_ROW_CLUES]);
     cJSON *col_clues  = get_cJSON(json, puzzle_json_props[KEY_PZ_COL_CLUES]);
 
-    strncpy(pz->title,  title->valuestring,  MAX_PZ_TITLE_LEN + 1);
+    strncpy(pz->title, title->valuestring, MAX_PZ_TITLE_LEN + 1);
     strncpy(pz->author, author->valuestring, MAX_PZ_AUTHOR_LEN + 1);
 
     pz->difficulty = difficulty->valueint;
@@ -432,7 +419,6 @@ struct puzzle *puzzle_create(const cJSON *json)
     return pz;
 }
 
-
 void load_puzzle_set_metadata(const cJSON *json, struct puzzle_set *pset)
 {
     assert(json != NULL);
@@ -445,8 +431,8 @@ void load_puzzle_set_metadata(const cJSON *json, struct puzzle_set *pset)
     cJSON *n_puzzles = get_cJSON(json, puzzle_json_props[KEY_PSET_N_PUZZLES]);
 
     strncpy(pset->format_ver, fmt_ver->valuestring, JSON_FMT_VER_LEN + 1);
-    strncpy(pset->title,      title->valuestring,   MAX_PZ_TITLE_LEN + 1);
-    strncpy(pset->desc,       desc->valuestring,    MAX_PZ_DESC_LEN + 1);
+    strncpy(pset->title, title->valuestring, MAX_PZ_TITLE_LEN + 1);
+    strncpy(pset->desc, desc->valuestring, MAX_PZ_DESC_LEN + 1);
     pset->num_puzzles = n_puzzles->valueint;
 }
 
@@ -476,13 +462,13 @@ struct puzzle_set *puzzle_set_create(const char *file_name, enum load_mode mode)
     if (mode != LOAD_METADATA_ONLY)
     {
         struct puzzle *pz;
-        cJSON *puzzles_json;
-        cJSON *pz_json;
+        cJSON         *puzzles_json;
+        cJSON         *pz_json;
         puzzles_json = get_cJSON(json, puzzle_json_props[KEY_PSET_PUZZLES]);
         for (int i = 0; i < pset->num_puzzles; i++)
         {
             pz_json = cJSON_GetArrayItem(puzzles_json, i);
-            pz = puzzle_create(pz_json);
+            pz      = puzzle_create(pz_json);
             if (pz == NULL)
             {
                 goto cleanup;
@@ -511,7 +497,7 @@ bool is_valid_json_puzzle_format(const cJSON *json)
             return true;
         }
     }
-    return false; 
+    return false;
 }
 
 bool is_valid_puzzle_set_metadata(const cJSON *json)
@@ -529,9 +515,10 @@ bool is_valid_puzzle_set_metadata(const cJSON *json)
     cJSON *fmt_ver = get_cJSON(json, puzzle_json_props[KEY_PSET_FMT_VER]);
     if (strcmp(fmt_ver->valuestring, JSON_FMT_VER) != 0)
     {
-        LOGF(LOG_WARNING, 
-             "Invalid JSON format version: Got %s, Expected %s",
-              fmt_ver->valuestring);
+        LOGF(
+            LOG_WARNING,
+            "Invalid JSON format version: Got %s, Expected %s",
+            fmt_ver->valuestring);
         return false;
     }
     return true;
@@ -580,12 +567,12 @@ bool fread_puzzle(FILE *fp, struct puzzle *pz)
         return false;
     }
 
-    pz->row_clues = (int **)alloc2d(pz->n_rows, 
-                                    get_row_clueline_size(pz), sizeof(int));
+    pz->row_clues =
+        (int **) alloc2d(pz->n_rows, get_row_clueline_size(pz), sizeof(int));
 
     ALLOC_CHECK_RETURN(pz->row_clues, false);
-    pz->col_clues = (int **)alloc2d(pz->n_cols, 
-                                    get_col_clueline_size(pz), sizeof(int));
+    pz->col_clues =
+        (int **) alloc2d(pz->n_cols, get_col_clueline_size(pz), sizeof(int));
     if (pz->col_clues == NULL)
     {
         free2d((void **) pz->row_clues, pz->n_rows);
@@ -602,4 +589,3 @@ bool fread_puzzle(FILE *fp, struct puzzle *pz)
 
     return true;
 }
-

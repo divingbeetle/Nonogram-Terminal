@@ -1,32 +1,12 @@
 #include "game_control.h"
 #include "tui.h"
+#include "tui_menu.h"
 #include "utils.h"
+#include <menu.h>
+#include <stdlib.h>
 
 #define TITLE_TEXT_HEIGHT 20
 #define TITLE_TEXT_WIDTH  88
-
-enum main_menu 
-{
-    MAIN_MENU_NEW_GAME,
-    MAIN_MENU_CONTINUE,
-    MAIN_MENU_HOW_TO_PLAY,
-    MAIN_MENU_SETTINGS,
-    MAIN_MENU_EXIT,
-    MAIN_MENU_DEBUG,
-    MAIN_MENU_N_CHOICES
-};
-
-char *main_menu_choices[MAIN_MENU_N_CHOICES] = 
-{
-    [MAIN_MENU_NEW_GAME]    = "New Game",
-    [MAIN_MENU_CONTINUE]    = "Continue",
-    [MAIN_MENU_HOW_TO_PLAY] = "How to Play",
-    [MAIN_MENU_SETTINGS]    = "Settings",
-    [MAIN_MENU_EXIT]        = "Exit",
-    [MAIN_MENU_DEBUG]       = "DEBUG"
-};
-
-char *main_menu_title = "Main Menu";
 
 void display_title_screen(void)
 {
@@ -55,17 +35,21 @@ void display_title_screen(void)
         "      \n",
         "   /$$$$$$$$ /$$$$$$$$ /$$$$$$$  /$$      /$$ /$$$$$$ /$$   /$$  "
         "/$$$$$$  /$$\n",
-        "  |__  $$__/| $$_____/| $$__  $$| $$$    /$$$|_  $$_/| $$$ | $$ /$$__  "
+        "  |__  $$__/| $$_____/| $$__  $$| $$$    /$$$|_  $$_/| $$$ | $$ /$$__ "
+        " "
         "$$| $$\n",
         "     | $$   | $$      | $$  \\ $$| $$$$  /$$$$  | $$  | $$$$| $$| $$  "
         "\\ $$| $$\n",
         "     | $$   | $$$$$   | $$$$$$$/| $$ $$/$$ $$  | $$  | $$ $$ $$| "
         "$$$$$$$$| $$\n",
-        "     | $$   | $$__/   | $$__  $$| $$  $$$| $$  | $$  | $$  $$$$| $$__  "
+        "     | $$   | $$__/   | $$__  $$| $$  $$$| $$  | $$  | $$  $$$$| $$__ "
+        " "
         "$$| $$\n",
-        "     | $$   | $$      | $$  \\ $$| $$\\  $ | $$  | $$  | $$\\  $$$| $$ "
+        "     | $$   | $$      | $$  \\ $$| $$\\  $ | $$  | $$  | $$\\  $$$| "
+        "$$ "
         " | $$| $$\n",
-        "     | $$   | $$$$$$$$| $$  | $$| $$ \\/  | $$ /$$$$$$| $$ \\  $$| $$  "
+        "     | $$   | $$$$$$$$| $$  | $$| $$ \\/  | $$ /$$$$$$| $$ \\  $$| $$ "
+        " "
         "| $$| $$$$$$$$\n",
         "     |__/   |________/|__/  |__/|__/     |__/|______/|__/  \\__/|__/  "
         "|__/|________/\n",
@@ -75,18 +59,40 @@ void display_title_screen(void)
 
     int screen_width = getmaxx(stdscr);
 
-    int title_start_y = 1;
-    int title_start_x = (screen_width - TITLE_TEXT_WIDTH) / 2;
+    int title_y = 1;
+    int title_x = (screen_width - TITLE_TEXT_WIDTH) / 2;
 
-    wattron(stdscr, COLOR_PAIR(COLOR_P_CYAN) | A_BLINK);
+    attron(COLOR_PAIR(COLOR_P_CYAN) | A_BLINK);
     for (int i = 0; i < TITLE_TEXT_HEIGHT; i++)
     {
-        mvwprintw(stdscr, title_start_y + i, title_start_x, "%s", title_text[i]);
+        mvprintw(title_y + i, title_x, "%s", title_text[i]);
     }
-
-    wattroff(stdscr, COLOR_PAIR(COLOR_P_CYAN) | A_BLINK);
+    attroff(COLOR_PAIR(COLOR_P_CYAN) | A_BLINK);
     refresh();
 }
+
+enum main_menu
+{
+    MAIN_MENU_NEW_GAME,
+    MAIN_MENU_CONTINUE,
+    MAIN_MENU_HOW_TO_PLAY,
+    MAIN_MENU_SETTINGS,
+    MAIN_MENU_EXIT,
+    MAIN_MENU_DEBUG,
+    MAIN_MENU_N_CHOICES
+};
+
+char *main_menu_choices[MAIN_MENU_N_CHOICES] = 
+{
+    [MAIN_MENU_NEW_GAME]    = "New Game",
+    [MAIN_MENU_CONTINUE]    = "Continue",
+    [MAIN_MENU_HOW_TO_PLAY] = "How to Play",
+    [MAIN_MENU_SETTINGS]    = "Settings",
+    [MAIN_MENU_EXIT]        = "Exit",
+    [MAIN_MENU_DEBUG]       = "DEBUG"
+};
+
+char *main_menu_title = "Main Menu";
 
 int main(void)
 {
@@ -95,27 +101,19 @@ int main(void)
 
     display_title_screen();
     refresh();
+    getch();
+    clear();
 
-    struct menu_param params = 
-    {
-        .title        = main_menu_title,
-        .size         = {.x = 40, .y = 10},
-        .start        = {.x = 1,  .y = 1 },
-        .n_choices    = MAIN_MENU_N_CHOICES,
-        .choices      = main_menu_choices,
-        .descriptions = NULL,
-    };
-
-    struct menu_set *mset = menu_set_create(&params);
-    ALLOC_CHECK_EXIT(mset);
-
-    struct menu_config config = menu_config_default;
-    menu_set_configure(mset, config);
+    MENU *main_menu = menu_create(main_menu_choices, NULL, MAIN_MENU_N_CHOICES);
+    menu_set_box(main_menu);
+    menu_set_title(main_menu, main_menu_title);
 
     bool in_menu = true;
     while (in_menu)
     {
-        int menu_choice = menu_set_get_user_choice(mset);
+        post_menu(main_menu);
+        int menu_choice = menu_get_user_choice(main_menu);
+        unpost_menu(main_menu);
         switch (menu_choice)
         {
             case MAIN_MENU_NEW_GAME:
@@ -163,7 +161,6 @@ int main(void)
                 break;
         }
     }
-
-    menu_set_destroy(mset);
+    menu_destroy(main_menu);
     display_notification("Exiting...");
 }

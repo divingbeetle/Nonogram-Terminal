@@ -17,7 +17,26 @@ struct pos
     int y, x;
 };
 
-enum color_pairs 
+struct directional
+{
+    int top, right, bottom, left;
+};
+
+struct rect
+{
+    struct pos start, size;
+};
+
+#define POS_ZERO ((struct pos) {0, 0})
+#define POS_NONE ((struct pos) {-1, -1})
+
+struct pos  get_window_size(WINDOW *win);
+struct pos  get_window_start(WINDOW *win);
+struct rect get_window_rect(WINDOW *win);
+
+struct pos get_subwin_start(WINDOW *win);
+
+enum color_pairs
 {
     /* Plain Color Pairs with black background */
     COLOR_P_DEFAULT,
@@ -41,9 +60,8 @@ enum color_pairs
     COLOR_P_N_PAIRS
 };
 
-#define COLOR_GREY 8
+#define COLOR_GREY      8
 #define COLOR_DARK_GREY 238
-
 
 /**
  * Initialize/configure the ncurses screen.
@@ -62,54 +80,5 @@ void display_notification(const char *msg);
 
 void color_pairs_test(void);
 void color_test(void);
-
-/* ---- Menu ---- */ 
-
-/**
- * @TODO: Currnet implementation is a minimal working model.
- *        Menu design and possible requirements are not considered yet.
- */
-
-#define MENU_NOT_SELECTED -1
-
-struct menu_param
-{
-    char *title;
-    char **choices;
-    char **descriptions;
-    int n_choices;
-    struct pos start;
-    struct pos size;
-};
-
-struct menu_config
-{
-    bool rescale;
-};
-extern const struct menu_config menu_config_default;
-
-struct menu_set
-{
-    const struct menu_param *params;
-    WINDOW *win;
-    MENU *menu;
-    ITEM **items;
-};
-
-struct menu_set *menu_set_create(const struct menu_param *params);
-
-/**
- * @param config Use global menu_config_default for default values.
- */
-void menu_set_configure(struct menu_set *mset, const struct menu_config config);
-void menu_set_destroy(struct menu_set *mset);
-
-/**
- * Prompt the user to select a choice from the menu.
- *  - Single selection, single column as of now.
- * @return Idx of the selected menu item.
- * @retval MENU_NOT_SELECTED if no item was selected.
- */
-int menu_set_get_user_choice(struct menu_set *mset);
 
 #endif // TUI_H

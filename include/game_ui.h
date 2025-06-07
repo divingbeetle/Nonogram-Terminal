@@ -2,27 +2,31 @@
 #define GAME_UI_H
 
 /******************************************************************************
- * GAME_UI 
+ * GAME_UI
  *
  *****************************************************************************/
 
-#include "tui.h"
-#include "puzzle.h"
 #include "game_core.h"
+#include "puzzle.h"
+#include "tui.h"
 
-struct game_ui 
+struct game_ui
 {
-    WINDOW *win;
-    WINDOW *board;
-    struct menu_set *cmd_menu;
+    WINDOW              *win;
+    WINDOW              *board;
+    MENU                *cmd_menu;
     const struct puzzle *puzzle;
 };
 
 struct game_ui *game_ui_create(const struct puzzle *pz);
-int game_ui_set_windows(struct game_ui *ui);
-void game_ui_destroy(struct game_ui *ui);
+int             game_ui_set_windows(struct game_ui *ui);
+void            game_ui_destroy(struct game_ui *ui);
 
-void highlight_area(struct game_ui *ui, struct cell start, struct cell end, attr_t attr);
+void highlight_area(
+    struct game_ui *ui,
+    struct cell     start,
+    struct cell     end,
+    attr_t          attr);
 
 /**
  * Display the base puzzle board with row and column clues.
@@ -30,7 +34,7 @@ void highlight_area(struct game_ui *ui, struct cell start, struct cell end, attr
 void display_base_board(struct game_ui *ui);
 
 /**
- * Update the ui with the current game state 
+ * Update the ui with the current game state
  */
 void display_game_state(struct game_ui *ui, const struct game_state *state);
 
