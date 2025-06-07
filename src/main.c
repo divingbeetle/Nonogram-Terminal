@@ -1,8 +1,9 @@
-#include <stdlib.h>
 #include "game_control.h"
-#include "puzzle.h"
 #include "tui.h"
 #include "utils.h"
+
+#define TITLE_TEXT_HEIGHT 20
+#define TITLE_TEXT_WIDTH  88
 
 enum main_menu 
 {
@@ -27,10 +28,73 @@ char *main_menu_choices[MAIN_MENU_N_CHOICES] =
 
 char *main_menu_title = "Main Menu";
 
+void display_title_screen(void)
+{
+    const char *title_text[TITLE_TEXT_HEIGHT] = {
+        "                                                                      "
+        "      ",
+        " /$$   /$$  /$$$$$$  /$$   /$$  /$$$$$$   /$$$$$$  /$$$$$$$   /$$$$$$ "
+        " /$$      /$$\n",
+        "| $$$ | $$ /$$__  $$| $$$ | $$ /$$__  $$ /$$__  $$| $$__  $$ /$$__  "
+        "$$| $$$    /$$$\n",
+        "| $$$$| $$| $$  \\ $$| $$$$| $$| $$  \\ $$| $$  \\__/| $$  \\ $$| $$  "
+        "\\ $$| $$$$  /$$$$\n",
+        "| $$ $$ $$| $$  | $$| $$ $$ $$| $$  | $$| $$ /$$$$| $$$$$$$/| "
+        "$$$$$$$$| $$ $$/$$ $$\n",
+        "| $$  $$$$| $$  | $$| $$  $$$$| $$  | $$| $$|_  $$| $$__  $$| $$__  "
+        "$$| $$  $$$| $$\n",
+        "| $$\\  $$$| $$  | $$| $$\\  $$$| $$  | $$| $$  \\ $$| $$  \\ $$| $$  "
+        "| $$| $$\\  $ | $$\n",
+        "| $$ \\  $$|  $$$$$$/| $$ \\  $$|  $$$$$$/|  $$$$$$/| $$  | $$| $$  | "
+        "$$| $$ \\/  | $$\n",
+        "|__/  \\__/ \\______/ |__/  \\__/ \\______/  \\______/ |__/  |__/|__/ "
+        " |__/|__/     |__/\n",
+        "                                                                      "
+        "      \n",
+        "                                                                      "
+        "      \n",
+        "   /$$$$$$$$ /$$$$$$$$ /$$$$$$$  /$$      /$$ /$$$$$$ /$$   /$$  "
+        "/$$$$$$  /$$\n",
+        "  |__  $$__/| $$_____/| $$__  $$| $$$    /$$$|_  $$_/| $$$ | $$ /$$__  "
+        "$$| $$\n",
+        "     | $$   | $$      | $$  \\ $$| $$$$  /$$$$  | $$  | $$$$| $$| $$  "
+        "\\ $$| $$\n",
+        "     | $$   | $$$$$   | $$$$$$$/| $$ $$/$$ $$  | $$  | $$ $$ $$| "
+        "$$$$$$$$| $$\n",
+        "     | $$   | $$__/   | $$__  $$| $$  $$$| $$  | $$  | $$  $$$$| $$__  "
+        "$$| $$\n",
+        "     | $$   | $$      | $$  \\ $$| $$\\  $ | $$  | $$  | $$\\  $$$| $$ "
+        " | $$| $$\n",
+        "     | $$   | $$$$$$$$| $$  | $$| $$ \\/  | $$ /$$$$$$| $$ \\  $$| $$  "
+        "| $$| $$$$$$$$\n",
+        "     |__/   |________/|__/  |__/|__/     |__/|______/|__/  \\__/|__/  "
+        "|__/|________/\n",
+        "                                                                      "
+        "     \n",
+    };
+
+    int screen_width = getmaxx(stdscr);
+
+    int title_start_y = 1;
+    int title_start_x = (screen_width - TITLE_TEXT_WIDTH) / 2;
+
+    wattron(stdscr, COLOR_PAIR(COLOR_P_CYAN) | A_BLINK);
+    for (int i = 0; i < TITLE_TEXT_HEIGHT; i++)
+    {
+        mvwprintw(stdscr, title_start_y + i, title_start_x, "%s", title_text[i]);
+    }
+
+    wattroff(stdscr, COLOR_PAIR(COLOR_P_CYAN) | A_BLINK);
+    refresh();
+}
+
 int main(void)
 {
     log_init();
     init_screen();
+
+    display_title_screen();
+    refresh();
 
     struct menu_param params = 
     {
