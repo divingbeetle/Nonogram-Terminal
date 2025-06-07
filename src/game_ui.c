@@ -76,7 +76,7 @@ void display_base_board(struct game_ui *ui)
 {
     clear();
     refresh();
-    box(ui->win, 0, 0);
+    // box(ui->win, 0, 0);
     draw_1x1_cell_grid(ui);
     draw_5x5_guide_grid(ui);
     draw_clues(ui);

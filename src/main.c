@@ -113,9 +113,26 @@ int main(void)
     getch();
     clear();
 
-    MENU *main_menu = menu_create(main_menu_choices, main_menu_descriptions, MAIN_MENU_N_CHOICES);
+    MENU *main_menu = menu_create(
+        main_menu_choices, main_menu_descriptions, MAIN_MENU_N_CHOICES);
     menu_set_box(main_menu);
     menu_set_title(main_menu, main_menu_title);
+
+    int screen_width = getmaxx(stdscr);
+    int screen_height = getmaxy(stdscr);
+
+    WINDOW *menu_window = menu_win(main_menu);
+    int menu_width = getmaxx(menu_window);
+    int menu_height = getmaxy(menu_window);
+    
+    int menu_x = (screen_width - menu_width) / 2;
+    int menu_y = TITLE_TEXT_HEIGHT + 3; // Add some space between title and menu
+    
+    if (menu_y + menu_height > screen_height) {
+        menu_y = screen_height - menu_height - 1;
+    }
+    
+    mvwin(menu_window, menu_y, menu_x);
 
     bool in_menu = true;
     while (in_menu)

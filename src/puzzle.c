@@ -256,6 +256,21 @@ struct puzzle_set *puzzle_set_create_from_user_selection(void)
     menu_set_box(menu);
     menu_set_title(menu, "Choose a puzzle set");
 
+    int screen_width = getmaxx(stdscr);
+    int screen_height = getmaxy(stdscr);
+    
+    WINDOW *menu_window = menu_win(menu);
+    int menu_width = getmaxx(menu_window);
+    int menu_height = getmaxy(menu_window);
+    
+    int menu_x = (screen_width - menu_width) / 2;
+    int menu_y = (screen_height - menu_height) / 2;
+    
+    if (menu_y < 0) menu_y = 1;
+    if (menu_y + menu_height > screen_height) menu_y = screen_height - menu_height - 1;
+    
+    mvwin(menu_window, menu_y, menu_x);
+
     post_menu(menu);
     int selected = menu_get_user_choice(menu);
     unpost_menu(menu);
@@ -296,6 +311,21 @@ struct puzzle *select_puzzle_from_set(struct puzzle_set *pset)
 
     menu_set_box(menu);
     menu_set_title(menu, "Choose a puzzle");
+
+    int screen_width = getmaxx(stdscr);
+    int screen_height = getmaxy(stdscr);
+    
+    WINDOW *menu_window = menu_win(menu);
+    int menu_width = getmaxx(menu_window);
+    int menu_height = getmaxy(menu_window);
+    
+    int menu_x = (screen_width - menu_width) / 2;
+    int menu_y = (screen_height - menu_height) / 2;
+    
+    if (menu_y < 0) menu_y = 1;
+    if (menu_y + menu_height > screen_height) menu_y = screen_height - menu_height - 1;
+    
+    mvwin(menu_window, menu_y, menu_x);
 
     post_menu(menu);
     int selected = menu_get_user_choice(menu);
@@ -450,8 +480,6 @@ struct puzzle_set *puzzle_set_create(const char *file_name, enum load_mode mode)
     struct puzzle_set *pset = NULL;
     cJSON             *json = NULL;
 
-    int n_puzzles_created = 0;
-
     json = cJSON_parse_file(file_name);
     if (json == NULL) return NULL;
 
@@ -467,7 +495,6 @@ struct puzzle_set *puzzle_set_create(const char *file_name, enum load_mode mode)
     strncpy(pset->file_name, file_name, MAX_PZ_FILE_NAME_LEN);
     load_puzzle_set_metadata(json, pset);
 
-    n_puzzles_created = 0;
     if (mode != LOAD_METADATA_ONLY)
     {
         struct puzzle *pz;
@@ -483,7 +510,6 @@ struct puzzle_set *puzzle_set_create(const char *file_name, enum load_mode mode)
                 goto cleanup;
             }
             pset->puzzles[i] = pz;
-            n_puzzles_created++;
         }
     }
 
