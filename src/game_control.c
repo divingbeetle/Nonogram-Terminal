@@ -382,7 +382,11 @@ int handle_key_input(struct game_controller *game, int key)
 
     if (key == KEY_RESIZE)
     {
-        // @TODO:
+        // Resize the windows
+        game_ui_set_windows(game->ui);
+        display_base_board(game->ui);
+        display_game_state(game->ui, game->state);
+        return 0;
     }
 
     // Any Unhandled key will exit visual mode
