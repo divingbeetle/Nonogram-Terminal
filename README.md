@@ -4,6 +4,11 @@ A terminal-based Nonogram (also known as Picross or Paint by Numbers) puzzle gam
 
 Learn more about Nonograms: [Wikipedia - Nonogram](https://en.wikipedia.org/wiki/Nonogram)
 
+
+https://github.com/user-attachments/assets/a523e16c-1ad5-4ca0-a6f7-741b2e2d94f0
+
+
+
 ## Description
 
 Nonogram Terminal is a text-based implementation of the popular Nonogram puzzle game. Nonograms are picture logic puzzles where cells in a grid must be colored or left blank according to numbers at the side of the grid to reveal a hidden picture.
